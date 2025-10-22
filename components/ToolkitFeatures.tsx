@@ -263,7 +263,6 @@ const aiToolkitFeatures = [
                                 </div>
                                 <img className="w-14 h-14 rounded-lg object-cover ml-2 flex-shrink-0" src="https://i.postimg.cc/L6KKKmrF/Vibrant-Flame-on-Black-Background-removebg-preview.png" alt="thumbnail" />
                             </div>
-                             <img className="w-full h-auto rounded-lg object-cover mt-2" src="https://cdn.discordapp.com/attachments/1409211763253051519/1409543802070241280/image.png?ex=68f8e8f6&is=68f79776&hm=c86a433abf718eb34766a82a680519617f4f4c8668ed77b6edc720ccc70e8286&" alt="main image" />
                         </div>
                          <div className="mt-4 pt-2 flex items-center gap-2">
                              <img className="w-5 h-5 rounded-full" src="https://i.postimg.cc/L6KKKmrF/Vibrant-Flame-on-Black-Background-removebg-preview.png" alt="footer icon" />

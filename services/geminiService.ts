@@ -60,7 +60,7 @@ export const generateServerTemplateStream = async (
 
     try {
         const stream = await ai.models.generateContentStream({
-            model: "gemini-2.5-flash",
+            model: "gemini-2.5-pro",
             contents: fullPrompt,
         });
 
