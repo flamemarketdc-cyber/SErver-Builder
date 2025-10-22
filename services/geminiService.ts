@@ -4,7 +4,7 @@ import type { ServerTemplate, EmbedMessagePayload, TutorialStep, BotRecommendati
 // The user has provided their API key to be used directly in the code.
 // In a production environment, it is strongly recommended to use environment variables
 // to keep sensitive keys out of the source code.
-const API_KEY = "AIzaSyDA3pkJAlQmEuP7WQo1bvNz18SitAp5lwA";
+const API_KEY = process.env.API_KEY;
 
 
 if (!API_KEY) {
@@ -34,10 +34,10 @@ export const generateServerTemplateStream = async (
     prompt: string,
     onUpdate: (template: ServerTemplate) => void
 ): Promise<void> => {
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
     if (!API_KEY) {
         throw new Error("API Key is not configured.");
     }
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
 
     const isValid = await isPromptValid(prompt);
     if (!isValid) {
@@ -182,10 +182,10 @@ const tutorialSchema = {
 };
 
 export const generateSetupTutorial = async (prompt: string, coreTemplate: ServerTemplate): Promise<TutorialStep[]> => {
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
     if (!API_KEY) {
         throw new Error("API Key is not configured.");
     }
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
 
     const fullPrompt = `
     You are an expert Discord server architect. You have already generated a server template. Now, create a detailed, step-by-step tutorial for a beginner to set up the server based on that template. The output must be a valid JSON object containing a list of steps.
@@ -236,8 +236,8 @@ export const generateSetupTutorial = async (prompt: string, coreTemplate: Server
 };
 
 export const generateWelcomeMessage = async (template: ServerTemplate, originalPrompt: string): Promise<string> => {
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
     if (!API_KEY) throw new Error("API Key is not configured.");
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
 
     const keyChannels = template.categories
         .flatMap(c => c.channels)
@@ -274,8 +274,8 @@ export const generateWelcomeMessage = async (template: ServerTemplate, originalP
 };
 
 export const generateServerRules = async (template: ServerTemplate, originalPrompt: string): Promise<string> => {
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
     if (!API_KEY) throw new Error("API Key is not configured.");
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
 
     const fullPrompt = `
     You are an experienced Discord moderator and community architect. Generate a comprehensive yet easy-to-digest set of server rules for a Discord server with the theme: "${originalPrompt}".
@@ -300,8 +300,8 @@ export const generateServerRules = async (template: ServerTemplate, originalProm
 };
 
 export const generateFirstAnnouncement = async (template: ServerTemplate, originalPrompt: string): Promise<string> => {
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
     if (!API_KEY) throw new Error("API Key is not configured.");
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
     
     const keyChannels = template.categories
         .flatMap(c => c.channels)
@@ -373,8 +373,8 @@ const embedSchema = {
 };
 
 export const generateEmbedMessage = async (prompt: string, serverName: string): Promise<EmbedMessagePayload> => {
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
     if (!API_KEY) throw new Error("API Key is not configured.");
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
 
     const fullPrompt = `
     You are a Discord message design expert. Your task is to generate the JSON for a beautiful and effective Discord message payload, which includes an embed.
@@ -426,10 +426,10 @@ export const generateEmbedMessage = async (prompt: string, serverName: string): 
 
 
 export const generateIcon = async (fullPrompt: string): Promise<string> => {
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
     if (!API_KEY) {
         throw new Error("API Key is not configured.");
     }
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
     
     try {
         const response = await ai.models.generateContent({
@@ -485,8 +485,8 @@ const botRecommendationsListSchema = {
 };
 
 export const generateBotRecommendations = async (template: ServerTemplate, originalPrompt: string): Promise<BotRecommendation[]> => {
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
     if (!API_KEY) throw new Error("API Key is not configured.");
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
 
     const fullPrompt = `
     You are a Discord bot expert. Based on the provided server theme, recommend 3 to 4 popular and highly useful Discord bots.
@@ -537,8 +537,8 @@ export const startChatStream = async (
     context: { view: string; serverName?: string; prompt?: string; },
     file?: { base64Data: string; mimeType: string; }
 ): Promise<void> => {
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
     if (!API_KEY) throw new Error("API Key is not configured.");
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
 
     const getSystemInstruction = () => {
         let instruction = `You are Flame Assistant, a professional and helpful guide for the 'Flaming Server Builder' website. Your tone should be clear, concise, and professional. Keep your answers brief, ideally 2-3 sentences, unless the user asks for detailed steps. You can see and comment on images users attach. Provide direct and helpful answers. If asked who created the website, say it was created by a developer named Ace. Do not mention the creator otherwise. Your primary goal is to help users with the website, but you can answer related questions. The official Discord server for this website is https://discord.gg/flamegw.`;
