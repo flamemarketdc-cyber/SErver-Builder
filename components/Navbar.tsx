@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient.ts';
 import type { Session } from '@supabase/supabase-js';
@@ -32,8 +34,8 @@ const CloseIcon = () => (
 );
 
 const DiscordIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
-    <svg className={className} role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path fill="currentColor" d="M20.34,0.22 C21.69,0.66 22.47,1.55 22.47,2.94 L22.47,18.33 C22.47,19.74 21.41,20.82 20.0,21.13 L16.48,17.61 C17.0,17.37 17.38,17.03 17.65,16.61 C17.92,16.19 18.06,15.67 18.06,15.06 L18.06,13.95 C18.06,11.91 16.71,10.88 14.89,10.88 L12.87,10.88 C11.53,10.88 10.54,11.55 10.03,12.55 L9.44,9.01 L12.82,6.96 L10.12,5.28 L6.11,7.29 L5.09,13.24 L1.71,11.91 L1.71,8.83 C1.81,7.89 2.78,6.81 4.12,6.39 L5.84,0.67 C7.19,0.23 8.52,0.67 9.52,1.67 L10.53,2.67 L15.24,0.13 L20.34,0.22 Z M8.93,11.3 C8.75,11.3 8.63,11.41 8.63,11.59 L8.63,11.76 C8.63,11.94 8.75,12.05 8.93,12.05 L9.1,12.05 C9.28,12.05 9.4,11.94 9.4,11.76 L9.4,11.59 C9.4,11.41 9.28,11.3 9.1,11.3 L8.93,11.3 Z M15.17,11.3 C14.99,11.3 14.87,11.41 14.87,11.59 L14.87,11.76 C14.87,11.94 14.99,12.05 15.17,12.05 L15.34,12.05 C15.52,12.05 15.64,11.94 15.64,11.76 L15.64,11.59 C15.64,11.41 15.52,11.3 15.34,11.3 L15.17,11.3 Z M12.05,15.06 C10.71,15.06 9.6,16.14 9.6,17.5 C9.6,18.86 10.71,19.94 12.05,19.94 C13.39,19.94 14.5,18.86 14.5,17.5 C14.5,16.14 13.39,15.06 12.05,15.06 Z" />
+    <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor" viewBox="0 0 16 16">
+        <path d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.577-.406.833a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.833.051.051 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.041.041 0 0 0-.021.037c.178.614.488 1.465.772 2.428a13.828 13.828 0 0 0-1.562 3.614.054.054 0 0 0 .007.054c.09.15.223.338.373.524a.05.05 0 0 0 .068.028c1.11-.369 2.14-1.107 2.757-1.728a.05.05 0 0 1 .054-.02c.422.253.882.478 1.37.683a.05.05 0 0 0 .065-.03c.007-.014.01-.028.014-.043a12.828 12.828 0 0 0 .63-.778.05.05 0 0 1 .04-.028c.118.061.237.122.353.184a.05.05 0 0 0 .054.003c.615-.478 1.23-1.043 1.788-1.743a.05.05 0 0 1 .054.018c.125.127.277.297.443.492a.05.05 0 0 0 .068-.028c.13-.178.26-.356.373-.524a.05.05 0 0 0 .007-.054 13.848 13.848 0 0 0-1.562-3.614c.284-.963.593-1.814.772-2.428a.04.04 0 0 0-.021-.037zM8.02 10.152c-.576 0-1.043-.516-1.043-1.144 0-.628.467-1.144 1.043-1.144.576 0 1.043.516 1.043 1.144 0 .628-.467 1.144-1.043 1.144zm3.64-1.144c0 .628-.467 1.144-1.043 1.144-.576 0-1.043-.516-1.043-1.144 0-.628.467-1.144 1.043-1.144.576 0 1.043.516 1.043 1.144z"/>
     </svg>
 );
 
@@ -49,6 +51,9 @@ export const Navbar: React.FC<NavbarProps> = ({ session, onGoHome, onShowToolkit
   const handleLogin = async () => {
       await supabase.auth.signInWithOAuth({
           provider: 'discord',
+          options: {
+              scopes: 'identify email guilds.join',
+          },
       });
   };
 
@@ -93,11 +98,18 @@ export const Navbar: React.FC<NavbarProps> = ({ session, onGoHome, onShowToolkit
         <div className="relative" ref={dropdownRef}>
             <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:ring-red-500"
+                className="relative flex items-center gap-2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:ring-red-500"
                 aria-haspopup="true"
                 aria-expanded={isDropdownOpen}
             >
                 <img src={user.user_metadata.avatar_url} alt={user.user_metadata.full_name} className="w-8 h-8 rounded-full" />
+                {user.user_metadata.avatar_decoration && (
+                    <img 
+                        src={`https://cdn.discordapp.com/avatar-decorations/${user.user_metadata.provider_id}/${user.user_metadata.avatar_decoration}.png?size=160`}
+                        alt="Avatar Decoration"
+                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] pointer-events-none"
+                    />
+                )}
             </button>
             {isDropdownOpen && (
                 <div className="user-dropdown absolute top-full right-0 mt-3 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-lg py-1 z-20">

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { ServerTemplate, TutorialStep, Section, ChatMessage, ChatAction, ChatSession } from './types.ts';
 import { generateServerTemplateStream, generateIcon, generateSetupTutorial, generateWelcomeMessage, generateServerRules, generateFirstAnnouncement, generateEmbedMessage, generateBotRecommendations, startChatStream, generateChatTopic } from './services/geminiService.ts';
@@ -94,7 +95,7 @@ const App: React.FC = () => {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
     });
 
