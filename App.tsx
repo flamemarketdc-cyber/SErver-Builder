@@ -56,7 +56,7 @@ const App: React.FC = () => {
   const [prompt, setPrompt] = useState<string>('');
   const [serverTemplate, setServerTemplate] = useState<ServerTemplate | null>(null);
   const [iconBase64, setIconBase64] = useState<string | null>(null);
-  const [error, setError] = useState<{ title: string; subtitle: string } | null>(null);
+  const [error, setError] = useState<{ title: string; subtitle: string; isConfigurationError?: boolean } | null>(null);
   const [iconError, setIconError] = useState<string | null>(null);
   const [loadingSubMessage, setLoadingSubMessage] = useState<string>('');
   const [view, setView] = useState<AppView>(() => getViewFromHash(window.location.hash));
@@ -395,6 +395,18 @@ const App: React.FC = () => {
     } catch (err) {
         if (err.message === "STREAM_CANCELLED") return;
         console.error("Error during stream generation:", err);
+        
+        if (err.message.includes("API Key is not configured")) {
+             setError({ 
+                title: 'Configuration Error', 
+                subtitle: "The Gemini API key is missing. The app will not function correctly without it. Please add it to your environment variables.",
+                isConfigurationError: true 
+            });
+            setView('home');
+            window.location.hash = '#/';
+            isGenerating.current = false;
+            return;
+        }
 
         // If we already have a partial template, stay on the results page and show an error there.
         if (serverTemplateRef.current && serverTemplateRef.current.serverName !== 'Generating...') {
@@ -692,7 +704,7 @@ const App: React.FC = () => {
         }
         return (
           <div className="fade-in">
-             {error && <div className="mb-6"><ErrorMessage title={error.title} subtitle={error.subtitle} onRetry={() => { view === 'results' ? handleRegenerateTemplate() : setError(null) }} /></div>}
+             {error && <div className="mb-6"><ErrorMessage title={error.title} subtitle={error.subtitle} onRetry={() => { view === 'results' ? handleRegenerateTemplate() : setError(null) }} isConfigurationError={error.isConfigurationError} /></div>}
             <TemplateDisplay 
               template={isToolkit ? (serverTemplate || template!) : template!} 
               iconBase64={iconBase64}
@@ -723,7 +735,7 @@ const App: React.FC = () => {
       default:
         return (
           <>
-            {error && <ErrorMessage title={error.title} subtitle={error.subtitle} onRetry={() => setError(null)} />}
+            {error && <ErrorMessage title={error.title} subtitle={error.subtitle} onRetry={() => setError(null)} isConfigurationError={error.isConfigurationError} />}
             <PromptInput prompt={prompt} setPrompt={setPrompt} onSubmit={handleSubmit} isLoading={isLoading} onShowToolkit={handleShowToolkit} />
             <div id="examples" className="mt-20 md:mt-32 scroll-mt-20">
               <Hero onExampleClick={handleExampleClick} />

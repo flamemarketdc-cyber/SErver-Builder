@@ -4,6 +4,7 @@ interface ErrorMessageProps {
   title: string;
   subtitle: string;
   onRetry: () => void;
+  isConfigurationError?: boolean;
 }
 
 const RetryIcon = () => (
@@ -13,19 +14,21 @@ const RetryIcon = () => (
 );
 
 
-export const ErrorMessage: React.FC<ErrorMessageProps> = ({ title, subtitle, onRetry }) => {
+export const ErrorMessage: React.FC<ErrorMessageProps> = ({ title, subtitle, onRetry, isConfigurationError }) => {
   return (
     <div className="max-w-2xl mx-auto flex flex-col items-center justify-center text-center gap-3 p-6 bg-red-950/70 border border-red-800 rounded-xl">
       <h3 className="text-xl font-bold text-white">{title}</h3>
       <p className="text-rose-300">{subtitle}</p>
-      <button 
-        onClick={onRetry} 
-        className="flex items-center gap-2 mt-2 px-4 py-2 rounded-lg bg-slate-800/50 hover:bg-slate-700 transition-colors group text-sm font-semibold text-white"
-        aria-label="Try again"
-      >
-        <RetryIcon />
-        <span>Try Again</span>
-      </button>
+      {!isConfigurationError && (
+        <button 
+          onClick={onRetry} 
+          className="flex items-center gap-2 mt-2 px-4 py-2 rounded-lg bg-slate-800/50 hover:bg-slate-700 transition-colors group text-sm font-semibold text-white"
+          aria-label="Try again"
+        >
+          <RetryIcon />
+          <span>Try Again</span>
+        </button>
+      )}
     </div>
   );
 };
