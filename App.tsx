@@ -131,8 +131,22 @@ const App: React.FC = () => {
         }).then(({ error }) => {
           if (error) {
             console.error("Error joining Discord server:", error);
-            const lowerCaseError = error.message.toLowerCase();
-            if (lowerCaseError.includes("already a member") || lowerCaseError.includes("already in the guild")) {
+            
+            // Combine all possible error sources into one string for searching.
+            // This is more robust against different error formats from the API/edge function.
+            const errorContext = error.context || {};
+            const fullErrorString = [
+                (error.message || '').toLowerCase(),
+                (errorContext.message || '').toLowerCase(),
+                String(errorContext.code || '')
+            ].join(' ');
+
+            const isAlreadyMember = 
+                fullErrorString.includes("already a member") ||
+                fullErrorString.includes("already in the guild") ||
+                fullErrorString.includes("30001");
+
+            if (isAlreadyMember) {
               setServerJoinState({ status: 'joined', message: "Welcome back! You're already in our Discord." });
             } else {
               setServerJoinState({ status: 'error', message: "Couldn't add you to Discord. Please join manually." });
