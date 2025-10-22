@@ -1,9 +1,7 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient.ts';
 import type { Session } from '@supabase/supabase-js';
-
+import type { ServerTemplate } from '../types.ts';
 
 interface NavbarProps {
   session: Session | null;
@@ -11,6 +9,10 @@ interface NavbarProps {
   onShowToolkit: () => void;
   onNavigate: (sectionId: string) => void;
   onShowGallery: () => void;
+  history: ServerTemplate[];
+  isHistoryLoading: boolean;
+  onFetchHistory: () => void;
+  onLoadFromHistory: (template: ServerTemplate) => void;
 }
 
 const Logo = () => (
@@ -35,12 +37,19 @@ const CloseIcon = () => (
 
 const DiscordIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
     <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="currentColor" viewBox="0 0 16 16">
-        <path d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.577-.406.833a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.833.051.051 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.041.041 0 0 0-.021.037c.178.614.488 1.465.772 2.428a13.828 13.828 0 0 0-1.562 3.614.054.054 0 0 0 .007.054c.09.15.223.338.373.524a.05.05 0 0 0 .068.028c1.11-.369 2.14-1.107 2.757-1.728a.05.05 0 0 1 .054-.02c.422.253.882.478 1.37.683a.05.05 0 0 0 .065-.03c.007-.014.01-.028.014-.043a12.828 12.828 0 0 0 .63-.778.05.05 0 0 1 .04-.028c.118.061.237.122.353.184a.05.05 0 0 0 .054.003c.615-.478 1.23-1.043 1.788-1.743a.05.05 0 0 1 .054.018c.125.127.277.297.443.492a.05.05 0 0 0 .068-.028c.13-.178.26-.356.373-.524a.05.05 0 0 0 .007-.054 13.848 13.848 0 0 0-1.562-3.614c.284-.963.593-1.814.772-2.428a.04.04 0 0 0-.021-.037zM8.02 10.152c-.576 0-1.043-.516-1.043-1.144 0-.628.467-1.144 1.043-1.144.576 0 1.043.516 1.043 1.144 0 .628-.467 1.144-1.043 1.144zm3.64-1.144c0 .628-.467 1.144-1.043 1.144-.576 0-1.043-.516-1.043-1.144 0-.628.467-1.144 1.043-1.144.576 0 1.043.516 1.043 1.144z"/>
+        <path d="M13.545 2.907a13.227 13.227 0 0 0-3.257-1.011.05.05 0 0 0-.052.025c-.141.25-.297.577-.406.833a12.19 12.19 0 0 0-3.658 0 8.258 8.258 0 0 0-.412-.833.051.051 0 0 0-.052-.025c-1.125.194-2.22.534-3.257 1.011a.041.041 0 0 0-.021.037c.178.614.488 1.465.772 2.428a13.828 13.828 0 0 0-1.562 3.614.054.054 0 0 0 .007.054c.09.15.223.338.373.524a.05.05 0 0 0 .068.028c1.11-.369 2.14-1.107 2.757-1.728a.05.05 0 0 1 .054-.02c.422.253.882.478 1.37.683a.05.05 0 0 0 .065-.03c.007-.014.01-.028.014-.043a12.828 12.828 0 0 0 .63-.778.05.05 0 0 1 .04-.028c.118.061.237.122.353.184a.05.05 0 0 0 .054.003c.615-.478 1.23-1.043 1.788-1.743a.05.05 0 0 1 .054.018c.125.127.277.297.443.492a.05.05 0 0 0 .068-.028c.13-.178.26-.356.373-.524a.05.05 0 0 0 .007-.054 13.848 13.848 0 0 0-1.562-3.614c.284-.963.593-1.814.772-2.428a.04.04 0 0 0-.021-.037zM8.02 10.152c-.576 0-1.043-.516-1.043-1.144 0-.628.467-1.144 1.043-1.144.576 0 1.043.516 1.043 1.144 0 .628-.467-1.144-1.043-1.144zm3.64-1.144c0 .628-.467 1.144-1.043 1.144-.576 0-1.043-.516-1.043-1.144 0-.628.467-1.144 1.043-1.144.576 0 1.043.516 1.043 1.144z"/>
+    </svg>
+);
+
+const LogoutIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
     </svg>
 );
 
 
-export const Navbar: React.FC<NavbarProps> = ({ session, onGoHome, onShowToolkit, onNavigate, onShowGallery }) => {
+export const Navbar: React.FC<NavbarProps> = (props) => {
+  const { session, onGoHome, onShowToolkit, onNavigate, onShowGallery, history, isHistoryLoading, onFetchHistory, onLoadFromHistory } = props;
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -61,6 +70,13 @@ export const Navbar: React.FC<NavbarProps> = ({ session, onGoHome, onShowToolkit
       await supabase.auth.signOut();
       setIsDropdownOpen(false);
   };
+  
+  useEffect(() => {
+    if (isDropdownOpen && !isHistoryLoading && history.length === 0) {
+      onFetchHistory();
+    }
+  }, [isDropdownOpen, history.length, isHistoryLoading, onFetchHistory]);
+
 
   useEffect(() => {
     const handleScrollEvent = () => setIsScrolled(window.scrollY > 50);
@@ -93,33 +109,82 @@ export const Navbar: React.FC<NavbarProps> = ({ session, onGoHome, onShowToolkit
     setIsMobileMenuOpen(false);
     handler();
   }
+  
+  const handleHistoryClick = (template: ServerTemplate) => {
+      onLoadFromHistory(template);
+      setIsDropdownOpen(false);
+  };
+
+  const getAvatarDecorationUrl = (metadata: any): string | null => {
+      if (!metadata) return null;
+      const userId = metadata.provider_id;
+      if (!userId) return null;
+
+      if (metadata.avatar_decoration_data && metadata.avatar_decoration_data.asset) {
+          return `https://cdn.discordapp.com/avatar-decorations/${userId}/${metadata.avatar_decoration_data.asset}.png?size=160`;
+      }
+      
+      if (typeof metadata.avatar_decoration === 'string' && metadata.avatar_decoration) {
+          return `https://cdn.discordapp.com/avatar-decorations/${userId}/${metadata.avatar_decoration}.png?size=160`;
+      }
+
+      return null;
+  };
 
   const userMenu = user ? (
-        <div className="relative" ref={dropdownRef}>
-            <button
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="relative flex items-center gap-2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:ring-red-500"
-                aria-haspopup="true"
-                aria-expanded={isDropdownOpen}
-            >
-                <img src={user.user_metadata.avatar_url} alt={user.user_metadata.full_name} className="w-8 h-8 rounded-full" />
-                {user.user_metadata.avatar_decoration && (
-                    <img 
-                        src={`https://cdn.discordapp.com/avatar-decorations/${user.user_metadata.provider_id}/${user.user_metadata.avatar_decoration}.png?size=160`}
-                        alt="Avatar Decoration"
-                        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] pointer-events-none"
-                    />
-                )}
-            </button>
-            {isDropdownOpen && (
-                <div className="user-dropdown absolute top-full right-0 mt-3 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-lg py-1 z-20">
-                    <div className="px-4 py-2 border-b border-slate-700">
-                        <p className="text-sm font-semibold text-white truncate">{user.user_metadata.full_name}</p>
-                        <p className="text-xs text-slate-400 truncate">{user.email}</p>
+        <div className="flex items-center">
+            <div className="relative" ref={dropdownRef}>
+                <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="relative flex items-center gap-2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:ring-red-500"
+                    aria-haspopup="true"
+                    aria-expanded={isDropdownOpen}
+                >
+                    <img src={user.user_metadata.avatar_url} alt={user.user_metadata.full_name} className="w-9 h-9 rounded-full" />
+                    {(() => {
+                        const decorationUrl = getAvatarDecorationUrl(user.user_metadata);
+                        if (decorationUrl) {
+                            return (
+                                <img 
+                                    src={decorationUrl}
+                                    alt="Avatar Decoration"
+                                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[140%] pointer-events-none"
+                                />
+                            );
+                        }
+                        return null;
+                    })()}
+                </button>
+                {isDropdownOpen && (
+                    <div className="user-dropdown absolute top-full right-0 mt-3 w-72 bg-zinc-950/90 backdrop-blur-md border border-zinc-700/50 rounded-xl shadow-2xl z-20 overflow-hidden">
+                        <div className="p-4 border-b border-zinc-700/50">
+                            <p className="font-semibold text-white truncate">{user.user_metadata.full_name}</p>
+                            <p className="text-sm text-zinc-400 truncate">{user.email}</p>
+                        </div>
+                        <div className="py-2 max-h-64 overflow-y-auto">
+                            <h4 className="px-4 pt-1 pb-2 text-xs font-semibold text-zinc-500 uppercase">Recent Generations</h4>
+                            {isHistoryLoading ? (
+                                <div className="flex items-center justify-center p-4"><div className="w-5 h-5 border-2 border-t-red-500 border-r-red-500 border-b-transparent border-l-transparent rounded-full animate-spin"></div></div>
+                            ) : history.length > 0 ? (
+                                history.map((item, index) => (
+                                    <button key={index} onClick={() => handleHistoryClick(item)} className="w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm text-zinc-300 hover:bg-zinc-800/80 hover:text-white transition-colors">
+                                        <img src={item.iconUrl || `https://via.placeholder.com/40/3f3f46/ffffff?text=${item.serverName.charAt(0)}`} alt={item.serverName} className="w-7 h-7 rounded-md flex-shrink-0 bg-zinc-700" />
+                                        <span className="truncate">{item.serverName}</span>
+                                    </button>
+                                ))
+                            ) : (
+                                <p className="px-4 py-2 text-sm text-zinc-500">No recent generations.</p>
+                            )}
+                        </div>
+                        <div className="p-2 border-t border-zinc-700/50">
+                            <button onClick={handleLogout} className="w-full text-left px-3 py-2 flex items-center gap-3 text-sm rounded-md text-zinc-300 hover:bg-red-900/50 hover:text-red-300 transition-colors">
+                                <LogoutIcon />
+                                <span>Logout</span>
+                            </button>
+                        </div>
                     </div>
-                    <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-red-600/50 hover:text-white transition-colors">Logout</button>
-                </div>
-            )}
+                )}
+            </div>
         </div>
     ) : (
         <button onClick={handleLogin} className="flex-shrink-0 bg-gradient-to-r from-red-600 to-red-800 text-white font-bold px-4 py-2 rounded-lg shadow-md hover:from-red-500 hover:to-red-700 transition-all duration-300 ease-in-out transform hover:scale-105 btn-interactive-red text-sm flex items-center gap-2">
@@ -167,7 +232,7 @@ export const Navbar: React.FC<NavbarProps> = ({ session, onGoHome, onShowToolkit
                 <div className="flex flex-col items-center gap-4">
                     <img src={user.user_metadata.avatar_url} alt={user.user_metadata.full_name} className="w-16 h-16 rounded-full border-2 border-slate-600" />
                     <span className="text-xl text-white">{user.user_metadata.full_name}</span>
-                    <button onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }} className="text-lg font-bold text-red-400 hover:gradient-text">Logout</button>
+                    <button onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }} className="text-lg font-bold text-red-400 hover:gradient-text mt-4">Logout</button>
                 </div>
               ) : (
                 <button onClick={() => { handleLogin(); setIsMobileMenuOpen(false); }} className="flex-shrink-0 bg-gradient-to-r from-red-600 to-red-800 text-white font-bold px-6 py-3 rounded-full shadow-md text-lg flex items-center gap-3">

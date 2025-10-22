@@ -111,12 +111,6 @@ export const Chatbot: React.FC<ChatbotProps> = (props) => {
     useEffect(() => { if (!isOpen && isListening) recognitionRef.current?.stop(); }, [isOpen, isListening]);
     
     useEffect(() => {
-        if (isOpen && sessions.length === 0 && !activeSessionId) {
-            onCreateNew();
-        }
-    }, [isOpen, sessions, activeSessionId, onCreateNew]);
-
-    useEffect(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) { console.warn("Speech recognition not supported."); return; }
         const recognition = new SpeechRecognition();
@@ -199,10 +193,26 @@ export const Chatbot: React.FC<ChatbotProps> = (props) => {
             </footer>
         </>
     );
+    
+    const renderContent = () => {
+        if (activeSession) {
+            return renderChatView();
+        }
+        if (sessions.length > 0) {
+            return renderLobby();
+        }
+        // This state handles the flicker when creating the first chat.
+        // It shows a spinner instead of the lobby for a split second.
+        return (
+            <div className="flex items-center justify-center h-full">
+                <div className="w-8 h-8 border-2 border-t-red-500 border-r-red-500 border-b-transparent border-l-transparent rounded-full animate-spin"></div>
+            </div>
+        );
+    };
 
     return (
         <div className="fixed bottom-6 right-6 w-[calc(100%-3rem)] max-w-sm h-[70vh] max-h-[600px] bg-zinc-950/80 backdrop-blur-xl border border-zinc-700 rounded-2xl shadow-2xl flex flex-col z-50 chatbot-window">
-            {activeSessionId ? renderChatView() : renderLobby()}
+            {renderContent()}
         </div>
     );
 };

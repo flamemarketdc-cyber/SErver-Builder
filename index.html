@@ -218,17 +218,19 @@
 
       /* User Dropdown */
       .user-dropdown {
-        animation: fadeInDown 0.2s ease-out forwards;
+        animation: dropdown-fade-scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
       }
-      @keyframes fadeInDown {
-          from {
-              opacity: 0;
-              transform: translateY(-10px);
-          }
-          to {
-              opacity: 1;
-              transform: translateY(0);
-          }
+      @keyframes dropdown-fade-scale-in {
+        from {
+          opacity: 0;
+          transform: translateY(-10px) scale(0.98);
+          transform-origin: top right;
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+          transform-origin: top right;
+        }
       }
     </style>
   </head>

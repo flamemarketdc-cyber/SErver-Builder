@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { ServerTemplate, TutorialStep, Section, ChatMessage, ChatAction, ChatSession } from './types.ts';
 import { generateServerTemplateStream, generateIcon, generateSetupTutorial, generateWelcomeMessage, generateServerRules, generateFirstAnnouncement, generateEmbedMessage, generateBotRecommendations, startChatStream, generateChatTopic } from './services/geminiService.ts';
@@ -63,6 +61,8 @@ const App: React.FC = () => {
 
   // Gallery and History State
   const [galleryTemplates, setGalleryTemplates] = useState<ServerTemplate[]>([]);
+  const [history, setHistory] = useState<ServerTemplate[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
 
   // State for individual loading spinners
   const [isIconLoading, setIsIconLoading] = useState<boolean>(false);
@@ -97,6 +97,10 @@ const App: React.FC = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
+      if (!session) {
+        // Clear history on logout
+        setHistory([]);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -343,6 +347,17 @@ const App: React.FC = () => {
         });
 
         if (finalTemplate && !generationCancelled.current) {
+            if (session?.user) {
+                supabase.from('generated_templates').insert({
+                    user_id: session.user.id,
+                    template_data: finalTemplate,
+                    prompt: generationPrompt,
+                }).then(({ error }) => {
+                    if (error) console.error("Failed to save template to history:", error.message);
+                    else setHistory([]); // Invalidate history to refetch
+                });
+            }
+
             setIsTutorialLoading(true);
             generateSetupTutorial(generationPrompt, finalTemplate)
                 .then(tutorial => {
@@ -478,7 +493,40 @@ const App: React.FC = () => {
     });
   };
 
+  // --- HISTORY HANDLERS ---
+  const fetchHistory = async () => {
+    if (!session?.user) return;
+    setIsHistoryLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('generated_templates')
+        .select('template_data, prompt')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      const templates = data.map(item => ({ ...item.template_data, tagline: item.prompt }));
+      setHistory(templates);
+    } catch (error) {
+      console.error('Error fetching history:', error);
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  };
+
+  const handleLoadFromHistory = (template: ServerTemplate) => {
+    handleSelectTemplate(template);
+  };
+
   // --- CHAT HANDLERS ---
+  const handleChatFabClick = () => {
+    if (chatSessions.length === 0 && !activeChatSessionId) {
+        handleCreateNewChat();
+    }
+    setIsChatOpen(true);
+  };
+
   const handleCreateNewChat = () => {
     let initialText = "Hello! I'm the Flame Assistant. How can I help you with the Server Builder today?";
     switch (view) {
@@ -684,6 +732,10 @@ const App: React.FC = () => {
         onShowToolkit={handleShowToolkit} 
         onNavigate={handleScrollNavigate} 
         onShowGallery={() => handleNavigate('/gallery')} 
+        history={history}
+        isHistoryLoading={isHistoryLoading}
+        onFetchHistory={fetchHistory}
+        onLoadFromHistory={handleLoadFromHistory}
       />
       <main className="container mx-auto px-4 py-8 md:py-16">
         <Header 
@@ -695,7 +747,7 @@ const App: React.FC = () => {
         </div>
       </main>
       <Footer />
-      {!isChatOpen && <ChatbotFab onClick={() => setIsChatOpen(true)} />}
+      {!isChatOpen && <ChatbotFab onClick={handleChatFabClick} />}
       <Chatbot 
           isOpen={isChatOpen} 
           onClose={() => { setIsChatOpen(false); setActiveChatSessionId(null); }}
