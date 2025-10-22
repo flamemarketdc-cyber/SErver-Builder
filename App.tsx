@@ -100,6 +100,17 @@ const App: React.FC = () => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
+      
+      if (_event === 'SIGNED_IN' && session) {
+        // In a real application, this is where you would trigger a secure,
+        // server-side function to add the user to your Discord server.
+        // This function would use the access token (`session.provider_token`)
+        // to make a call to the Discord API. This prevents exposing sensitive
+        // tokens on the client-side.
+        // Example: await supabase.functions.invoke('add-to-discord-server');
+        console.log('User signed in. In a real app, would now add to Discord server via backend function.');
+      }
+
       if (!session) {
         // Clear history on logout
         setHistory([]);
@@ -670,15 +681,12 @@ const App: React.FC = () => {
         return <GalleryPage templates={galleryTemplates} onSelectTemplate={handleSelectTemplate} />;
 
       case 'history':
-        return <HistoryPage history={history} isLoading={isHistoryLoading} onSelectTemplate={handleSelectTemplate} />;
+        return <HistoryPage history={history} isLoading={isHistoryLoading} onSelectTemplate={handleSelectTemplate} onStartBuilding={handleGoHome} />;
         
       case 'results':
       case 'toolkit':
         const isToolkit = view === 'toolkit';
         const template = isToolkit ? defaultTemplateForToolkit : serverTemplate;
-        // Fix: Removed redundant and incorrect `view !== 'generating'` check.
-        // Inside this switch case, `view` can only be 'results' or 'toolkit', so the check was always true
-        // and caused a TypeScript error. The logic now correctly checks only for the template's existence.
         if (!template) {
             return <LoadingSpinner message={'Loading Server Blueprint...'} />;
         }
@@ -746,7 +754,7 @@ const App: React.FC = () => {
       />
       <main className="container mx-auto px-4 py-8 md:py-16">
         <Header 
-          isToolkitMode={view === 'toolkit' || view === 'history'}
+          view={view}
           onGoHome={view === 'results' || view === 'toolkit' || view === 'gallery' || view === 'toolkitPrompt' || view === 'history' ? handleGoHome : undefined} 
         />
         <div className="mt-12">

@@ -6,6 +6,7 @@ interface HistoryPageProps {
   history: ServerTemplate[];
   isLoading: boolean;
   onSelectTemplate: (template: ServerTemplate) => void;
+  onStartBuilding: () => void;
 }
 
 const HistoryListItem: React.FC<{ template: ServerTemplate; onSelect: (template: ServerTemplate) => void }> = ({ template, onSelect }) => {
@@ -40,7 +41,14 @@ const HistoryListItem: React.FC<{ template: ServerTemplate; onSelect: (template:
     );
 };
 
-export const HistoryPage: React.FC<HistoryPageProps> = ({ history, isLoading, onSelectTemplate }) => {
+const PlusIcon: React.FC = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+    </svg>
+);
+
+
+export const HistoryPage: React.FC<HistoryPageProps> = ({ history, isLoading, onSelectTemplate, onStartBuilding }) => {
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center text-center p-8 min-h-[40vh]">
@@ -57,6 +65,13 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ history, isLoading, on
             <div className="text-center min-h-[40vh] flex flex-col items-center justify-center p-6 bg-slate-900/30 border-2 border-dashed border-slate-700 rounded-xl">
                 <h4 className="text-2xl font-bold text-white">No Creations Yet</h4>
                 <p className="text-slate-400 max-w-md mx-auto my-3">You haven't generated any server templates. Go to the homepage to start building your first one!</p>
+                <button 
+                    onClick={onStartBuilding}
+                    className="mt-6 flex items-center gap-3 bg-gradient-to-r from-red-600 to-red-800 text-white font-bold text-lg px-8 py-3 rounded-lg shadow-md hover:from-red-500 hover:to-red-700 transition-all duration-300 ease-in-out transform disabled:opacity-50 disabled:cursor-not-allowed btn-interactive-red"
+                >
+                    <PlusIcon />
+                    <span>Build Your First Server</span>
+                </button>
             </div>
         );
     }

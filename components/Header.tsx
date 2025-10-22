@@ -1,7 +1,11 @@
 import React from 'react';
 
+// Define a local AppView type to avoid import issues
+type AppView = 'home' | 'generating' | 'results' | 'toolkitPrompt' | 'toolkit' | 'serverBuilder' | 'gallery' | 'history';
+
+
 interface HeaderProps {
-  isToolkitMode?: boolean;
+  view: AppView;
   onGoHome?: () => void;
 }
 
@@ -32,9 +36,9 @@ const InteractiveText: React.FC<{ text: string; className?: string }> = ({ text,
   );
 };
 
-export const Header: React.FC<HeaderProps> = ({ isToolkitMode = false, onGoHome }) => {
+export const Header: React.FC<HeaderProps> = ({ view, onGoHome }) => {
   const content = (() => {
-    if (isToolkitMode) {
+    if (view === 'toolkit' || view === 'toolkitPrompt') {
       return (
         <>
           <h1 className="text-5xl md:text-7xl font-black font-title tracking-tight fire-shadow main-title-interactive">
@@ -48,6 +52,21 @@ export const Header: React.FC<HeaderProps> = ({ isToolkitMode = false, onGoHome 
         </>
       );
     }
+    if (view === 'history') {
+      return (
+        <>
+          <h1 className="text-5xl md:text-7xl font-black font-title tracking-tight fire-shadow main-title-interactive">
+             <span className="white-glow"><InteractiveText text="My" className="text-white" /></span>
+             {' '}
+             <span className="red-glow"><InteractiveText text="Creations." className="gradient-text" /></span>
+          </h1>
+          <p className="mt-4 text-lg md:text-xl text-slate-300 max-w-2xl mx-auto">
+            Review and revisit all the server templates you've generated.
+          </p>
+        </>
+      );
+    }
+    
     return (
       <>
         <h1 className="text-5xl md:text-7xl font-black font-title tracking-tight fire-shadow main-title-interactive">
