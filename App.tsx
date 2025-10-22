@@ -131,7 +131,8 @@ const App: React.FC = () => {
         }).then(({ error }) => {
           if (error) {
             console.error("Error joining Discord server:", error);
-            if (error.message.includes("already a member")) {
+            const lowerCaseError = error.message.toLowerCase();
+            if (lowerCaseError.includes("already a member") || lowerCaseError.includes("already in the guild")) {
               setServerJoinState({ status: 'joined', message: "Welcome back! You're already in our Discord." });
             } else {
               setServerJoinState({ status: 'error', message: "Couldn't add you to Discord. Please join manually." });
