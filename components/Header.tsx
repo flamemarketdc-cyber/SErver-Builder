@@ -2,7 +2,6 @@ import React from 'react';
 
 interface HeaderProps {
   isToolkitMode?: boolean;
-  isGalleryMode?: boolean;
   onGoHome?: () => void;
 }
 
@@ -33,7 +32,7 @@ const InteractiveText: React.FC<{ text: string; className?: string }> = ({ text,
   );
 };
 
-export const Header: React.FC<HeaderProps> = ({ isToolkitMode = false, isGalleryMode = false, onGoHome }) => {
+export const Header: React.FC<HeaderProps> = ({ isToolkitMode = false, onGoHome }) => {
   const content = (() => {
     if (isToolkitMode) {
       return (
@@ -45,20 +44,6 @@ export const Header: React.FC<HeaderProps> = ({ isToolkitMode = false, isGallery
           </h1>
           <p className="mt-4 text-lg md:text-xl text-slate-300 max-w-2xl mx-auto">
             Generate messages, rules, and professional embeds for any server.
-          </p>
-        </>
-      );
-    }
-    if (isGalleryMode) {
-      return (
-        <>
-          <h1 className="text-5xl md:text-7xl font-black font-title tracking-tight fire-shadow main-title-interactive">
-             <span className="white-glow"><InteractiveText text="Community" className="silver-gradient-text" /></span>
-             {' '}
-             <span className="red-glow"><InteractiveText text="Templates." className="gradient-text" /></span>
-          </h1>
-          <p className="mt-4 text-lg md:text-xl text-slate-300 max-w-2xl mx-auto">
-            Browse our collection of popular, AI-generated server designs.
           </p>
         </>
       );

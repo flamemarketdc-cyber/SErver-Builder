@@ -103,17 +103,16 @@ const ExampleCard: React.FC<ExampleCardProps> = ({ icon, title, description, onC
 
 interface HeroProps {
   onExampleClick: (prompt: string) => void;
-  onShowGallery: () => void;
 }
 
-export const Hero: React.FC<HeroProps> = ({ onExampleClick, onShowGallery }) => {
+export const Hero: React.FC<HeroProps> = ({ onExampleClick }) => {
   return (
     <section className="text-center">
       <h2 className="text-3xl font-bold text-slate-200 mb-4">
         Feeling Lost? Let's <span className="italic">Spark Some <span className="gradient-text">Inspiration.</span></span>
       </h2>
       <p className="text-slate-400 max-w-xl mx-auto mb-12">
-        Kickstart your server with one of our proven templates, or browse the community gallery for more ideas.
+        Kickstart your server with one of our proven templates for popular community types.
       </p>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 lg:grid-rows-2 gap-3 max-w-6xl mx-auto">
         <AnimatedSection className="lg:col-start-1 lg:row-start-1" animationClass="unfold-animate">

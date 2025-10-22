@@ -1,9 +1,6 @@
-import { GoogleGenAI, Type, Modality, Chat } from "@google/genai";
+import { GoogleGenAI, Type, Modality } from "@google/genai";
 import type { ServerTemplate, EmbedMessagePayload, TutorialStep, BotRecommendation, Embed, Category, Role, ChatMessage } from '../types.ts';
 
-// The user has provided their API key to be used directly in the code.
-// In a production environment, it is strongly recommended to use environment variables
-// to keep sensitive keys out of the source code.
 const API_KEY = process.env.API_KEY;
 
 
@@ -19,14 +16,11 @@ const isPromptValid = async (prompt: string): Promise<boolean> => {
         return false;
     }
     
-    // Check for excessive repeating characters (e.g., "bbbbbb")
     const repeatingCharsRegex = /(.)\1{4,}/;
     if (repeatingCharsRegex.test(trimmedPrompt)) {
         return false;
     }
 
-    // AI validation was too aggressive with short, creative prompts.
-    // Removed to allow the main generation model to interpret the user's intent.
     return true;
 }
 
@@ -377,147 +371,86 @@ export const generateEmbedMessage = async (prompt: string, serverName: string): 
     const ai = new GoogleGenAI({ apiKey: API_KEY });
 
     const fullPrompt = `
-    You are a Discord message design expert. Your task is to generate the JSON for a beautiful and effective Discord message payload, which includes an embed.
+    You are a Discord message design expert. Your task is to generate the JSON for a beautiful and effective Discord embed message based on a user's prompt. You must adhere to the provided JSON schema precisely.
 
-    The user wants an embed for: "${prompt}"
-    The server's name is: "${serverName}"
+    User's Request: "${prompt}"
 
-    The response MUST be a valid JSON object adhering to the provided schema.
-    
-    **Embed Generation:**
-    - **title**: A concise and engaging title. Can use emojis.
-    - **description**: The main body of the embed. Use Discord markdown like **bold**, *italics*, and newlines (\\n) for formatting. Keep it readable.
-    - **color**: An integer representation of a hex color code. For example, for red (#FF0000), the integer is 16711680. Use a color that fits the theme of the prompt.
-    - **fields**: An array of objects for structured information. Use these to break down information into easy-to-read blocks. Use the 'inline' property to place fields side-by-side if they are short.
-    - **thumbnail**: (Optional) An object with a 'url' property for a small image in the top-right. Only include this if the user's prompt implies a visual element that would fit well as a thumbnail (like a logo or small icon).
-    - **image**: (Optional) An object with a 'url' property for a large image at the bottom of the embed. Only include this if the user's prompt asks for a banner, a showcase image, or a large visual.
-    - **footer**: A small text at the bottom. Use the server name here.
+    **Guidelines:**
+    - **Title & Description:** Craft a compelling title and description from the user's prompt. The description can use simple Discord markdown like **bold**.
+    - **Color:** Choose a single, appropriate hex color and convert it to its integer representation.
+    - **Fields:** Create 2-3 relevant fields. Each field must have a name, a value, and an 'inline' boolean status.
+    - **Images:** If appropriate, suggest a placeholder thumbnail or image URL. Use a relevant, high-quality image URL from a public source like postimg.cc or imgur.com.
+    - **Footer:** The footer text must be the server name: "${serverName}".
     `;
-
-    const payloadSchema = {
-        type: Type.OBJECT,
-        properties: {
-            embeds: { type: Type.ARRAY, items: embedSchema },
-        },
-        required: ['embeds']
-    };
 
     try {
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: 'gemini-2.5-pro',
             contents: fullPrompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: payloadSchema,
+                responseSchema: embedSchema,
             },
         });
-
         const jsonText = response.text.trim();
-        return JSON.parse(jsonText) as EmbedMessagePayload;
-
-    } catch (error) {
-        console.error("Error generating embed message with Gemini:", error);
-        if (error instanceof Error) {
-            throw new Error(`The AI returned an invalid format or the service is down. Details: ${error.message}`);
-        }
-        throw new Error("An unknown error occurred while generating the embed message.");
-    }
-};
-
-
-export const generateIcon = async (fullPrompt: string): Promise<string> => {
-    if (!API_KEY) {
-        throw new Error("API Key is not configured.");
-    }
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
-    
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
-            contents: {
-                parts: [{ text: fullPrompt }],
-            },
-            config: {
-                responseModalities: [Modality.IMAGE],
-            },
-        });
-
-        for (const part of response.candidates[0].content.parts) {
-            if (part.inlineData) {
-                return part.inlineData.data;
-            }
-        }
-        throw new Error("Image generation failed, no image data returned.");
-
-    } catch (error) {
-        console.error("Error generating icon with Gemini:", error);
-        throw error;
+        const embed = JSON.parse(jsonText) as Embed;
+        return { embeds: [embed] };
+    } catch (e) {
+        console.error("Failed to generate embed message with Gemini:", e);
+        throw new Error("Failed to generate embed message.");
     }
 };
 
 const botRecommendationSchema = {
     type: Type.OBJECT,
     properties: {
-        name: { type: Type.STRING, description: "The bot's name." },
-        purpose: { type: Type.STRING, description: "The bot's primary category/purpose, e.g., 'Moderation', 'Music', 'Fun & Engagement', 'Utility'." },
-        description: { type: Type.STRING, description: "A concise, one-sentence summary of the bot's purpose and key features." },
-        keyFeatures: { 
-            type: Type.ARRAY, 
-            items: { type: Type.STRING },
-            description: "A list of 2-3 key features or getting-started tips."
-        },
-        inviteLink: { type: Type.STRING, description: "The valid, direct URL to invite the bot to a server." },
+        name: { type: Type.STRING },
+        purpose: { type: Type.STRING, description: "A single category like 'Moderation', 'Music', 'Engagement', 'Utility'." },
+        description: { type: Type.STRING },
+        keyFeatures: { type: Type.ARRAY, items: { type: Type.STRING } },
+        inviteLink: { type: Type.STRING, description: "The official, valid invite link for the bot." },
     },
     required: ['name', 'purpose', 'description', 'keyFeatures', 'inviteLink']
 };
 
-
-const botRecommendationsListSchema = {
+const botListSchema = {
     type: Type.OBJECT,
     properties: {
         bots: {
             type: Type.ARRAY,
-            description: "A list of 3-4 recommended bots.",
             items: botRecommendationSchema
         }
     },
     required: ['bots']
 };
 
+
 export const generateBotRecommendations = async (template: ServerTemplate, originalPrompt: string): Promise<BotRecommendation[]> => {
     if (!API_KEY) throw new Error("API Key is not configured.");
     const ai = new GoogleGenAI({ apiKey: API_KEY });
-
+    
     const fullPrompt = `
-    You are a Discord bot expert. Based on the provided server theme, recommend 3 to 4 popular and highly useful Discord bots.
-    For each bot, provide its name, its primary purpose (e.g., "Moderation", "Music", "Fun & Engagement", "Utility"), a concise description, a list of 2-3 key features or getting-started tips, and its direct invite link.
+    You are a Discord bot expert. Your task is to recommend the 2 best, most popular, and reliable Discord bots for a server with the theme "${originalPrompt}". The output must be a valid JSON object containing a list of 2 bot recommendations.
 
-    **CRITICAL**: The 'keyFeatures' should be a list of short, actionable points. For example: "Automated role assignments with /autorole", "Create polls with /poll", "Play music from YouTube with /play".
+    For each bot, provide:
+    1. 'name': The bot's official name.
+    2. 'purpose': A single, concise category (e.g., "Moderation", "Music", "Engagement", "Utility").
+    3. 'description': A short, compelling one-sentence summary of what the bot does.
+    4. 'keyFeatures': A list of 2-3 of the bot's most important or useful features.
+    5. 'inviteLink': The official, working invite link for the bot.
 
-    The user's server theme is: "${originalPrompt}"
-    Server Name: "${template.serverName}"
-
-    **Bot Variety is Key**: Recommend a mix of bots for different purposes. Consider including bots for:
-    - **Moderation & Utility**: Tools like Sapphire, Apollo (for events), Falcon, Ticket Tool.
-    - **Fun & Engagement**: Dank Memer, OwO, Arcane (for leveling).
-    - **Music**: Rythm or a similar popular music bot.
-    - **Management**: Invite Tracker, Appy (for staff applications), BotGhost (for creating custom bots).
-
-    Select the most relevant bots for the server's theme. For example, a gaming server would benefit from Arcane and Dank Memer, while a community server might need a good Ticket Tool and Invite Tracker.
-
-    Output a valid JSON object that follows the provided schema.
+    The recommendations should be highly relevant to the server's theme. For example, a gaming server needs moderation and maybe a music or game-stats bot. A study server might need a utility bot for reminders or a music bot for focus.
     `;
     
     try {
         const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
+            model: 'gemini-2.5-pro',
             contents: fullPrompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: botRecommendationsListSchema,
+                responseSchema: botListSchema,
             },
         });
-
         const jsonText = response.text.trim();
         const result = JSON.parse(jsonText) as { bots: BotRecommendation[] };
         return result.bots;
@@ -527,107 +460,135 @@ export const generateBotRecommendations = async (template: ServerTemplate, origi
     }
 };
 
-let chat: Chat | null = null;
-let lastContextKey: string | null = null;
+
+export const generateIcon = async (prompt: string): Promise<string> => {
+    if (!API_KEY) throw new Error("API Key is not configured.");
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
+
+    try {
+        const response = await ai.models.generateImages({
+            model: 'imagen-4.0-generate-001',
+            prompt: prompt,
+            config: {
+                numberOfImages: 1,
+                outputMimeType: 'image/jpeg',
+                aspectRatio: '1:1',
+            },
+        });
+        
+        if (response.generatedImages && response.generatedImages.length > 0) {
+            return response.generatedImages[0].image.imageBytes;
+        } else {
+            throw new Error("No image was generated by the API.");
+        }
+
+    } catch (e) {
+        console.error("Failed to generate icon with Gemini:", e);
+        throw e;
+    }
+};
+
 
 export const startChatStream = async (
     history: ChatMessage[],
     onUpdate: (chunk: string) => void,
     onComplete: (fullMessage: string) => void,
-    context: { view: string; serverName?: string; prompt?: string; },
-    file?: { base64Data: string; mimeType: string; }
-): Promise<void> => {
+    context: { view: string; serverName?: string | null; prompt?: string | null },
+    file?: { base64Data: string; mimeType: string } | null
+) => {
     if (!API_KEY) throw new Error("API Key is not configured.");
     const ai = new GoogleGenAI({ apiKey: API_KEY });
-
-    const getSystemInstruction = () => {
-        let instruction = `You are Flame Assistant, a professional and helpful guide for the 'Flaming Server Builder' website. Your tone should be clear, concise, and professional. Keep your answers brief, ideally 2-3 sentences, unless the user asks for detailed steps. You can see and comment on images users attach. Provide direct and helpful answers. If asked who created the website, say it was created by a developer named Ace. Do not mention the creator otherwise. Your primary goal is to help users with the website, but you can answer related questions. The official Discord server for this website is https://discord.gg/flamegw.`;
-
-        let actionPrompt = '';
-        switch (context.view) {
-            case 'home':
-            case 'serverBuilder':
-                instruction += `\n\nThe user is on the main Server Builder page. Help them with ideas, explain how it works, or guide them to other features.`;
-                actionPrompt = `\n\nWhen helpful, you can suggest actions using this exact format at the very end of your response: [ACTIONS][{"label": "Try an Example", "actionId": "SCROLL_EXAMPLES"}, {"label": "Explore Features", "actionId": "SCROLL_FEATURES"}, {"label": "See How It Works", "actionId": "SCROLL_HOWITWORKS"}, {"label": "Use the AI Toolkit", "actionId": "NAV_TOOLKIT"}, {"label": "Browse Gallery", "actionId": "NAV_GALLERY"}]`;
-                break;
-            case 'gallery':
-                instruction += `\n\nThe user is browsing the Community Gallery of pre-made server templates. Help them choose a template or understand its purpose.`;
-                actionPrompt = `\n\nWhen helpful, you can suggest actions using this exact format at the very end of your response: [ACTIONS][{"label": "Create a new server", "actionId": "NAV_SERVERBUILDER"}, {"label": "Use the AI Toolkit", "actionId": "NAV_TOOLKIT"}]`;
-                break;
-            case 'toolkit':
-            case 'toolkitPrompt':
-                instruction += `\n\nThe user is on the AI Toolkit page. Their server theme is "${context.prompt || 'not specified'}". Help them generate welcome messages, rules, embeds, or find bots.`;
-                actionPrompt = `\n\nWhen helpful, you can suggest actions using this exact format at the very end of your response: [ACTIONS][{"label": "Create a full server", "actionId": "NAV_SERVERBUILDER"}, {"label": "Browse Gallery", "actionId": "NAV_GALLERY"}]`;
-                break;
-            case 'results':
-                instruction += `\n\nThe user is viewing their generated server template named "${context.serverName || 'Untitled Server'}" based on the prompt "${context.prompt || 'not specified'}". Help them understand the template and how to use it.`;
-                actionPrompt = `\n\nWhen helpful, you can suggest actions using this exact format at the very end of your response: [ACTIONS][{"label": "View Channels", "actionId": "NAV_RESULTS_CHANNELS"}, {"label": "View Roles", "actionId": "NAV_RESULTS_ROLES"}, {"label": "See Setup Tutorial", "actionId": "NAV_RESULTS_TUTORIAL"}, {"label": "Find Bots", "actionId": "NAV_RESULTS_BOTS"}, {"label": "Use AI Toolkit", "actionId": "NAV_RESULTS_UTILITIES"}]`;
-                break;
-        }
-
-        return instruction + actionPrompt;
-    };
-
-    const contextKey = `${context.view}-${context.serverName || ''}`;
     
-    const historyForApi = history.slice(0, -1);
-    // The Gemini API requires history to start with a user turn.
-    // Our chatbot's first message is from the bot for UI purposes, so we need to filter it out.
-    if (historyForApi.length > 0 && historyForApi[0].sender === 'bot') {
-        historyForApi.shift(); // remove the first element (initial bot message)
-    }
-    
-    const geminiHistory = historyForApi.map(msg => ({
+    const systemInstruction = `
+        You are "Flame", an expert AI assistant for the Discord Server Builder application. Be helpful, concise, and friendly.
+        Your goal is to guide users, answer questions about the app's features, and help them build their ideal Discord server.
+        - Analyze the user's message and the conversation history.
+        - Provide relevant information and suggestions.
+        - You can suggest actions for the user to take within the app. To do this, you MUST end your response with a special block: [ACTIONS][{"label": "Button Text", "actionId": "ACTION_ID"}].
+        - Use simple markdown for formatting (bold, lists).
+
+        Available actionIds:
+        - NAV_TOOLKIT: Navigate to the AI Toolkit page.
+        - NAV_SERVERBUILDER: Navigate to the main server builder (home) page.
+        - NAV_GALLERY: Navigate to the template gallery.
+        - SCROLL_EXAMPLES: Scroll to the examples section on the homepage.
+        - SCROLL_FEATURES: Scroll to the features section on the homepage.
+        - SCROLL_HOWITWORKS: Scroll to the "How It Works" section on the homepage.
+        - NAV_RESULTS_CHANNELS: On the results page, jump to the Channels & Categories section.
+        - NAV_RESULTS_ROLES: On the results page, jump to the Roles & Hierarchy section.
+        - NAV_RESULTS_UTILITIES: On the results page, jump to the AI Toolkit section.
+        - NAV_RESULTS_BOTS: On the results page, jump to the Bot Setup section.
+        - NAV_RESULTS_TUTORIAL: On the results page, jump to the Setup Tutorial section.
+        
+        Current context:
+        - The user is on the "${context.view}" page.
+        - Server being viewed/edited (if any): "${context.serverName || 'None'}"
+        - The original prompt for the server (if any): "${context.prompt || 'None'}"
+    `;
+
+    const contents = history.map(msg => ({
         role: msg.sender === 'user' ? 'user' : 'model',
         parts: [{ text: msg.text }]
     }));
-
-    if (!chat || contextKey !== lastContextKey) {
-        chat = ai.chats.create({
-            model: 'gemini-2.5-flash',
-            config: {
-                systemInstruction: getSystemInstruction(),
-            },
-            history: geminiHistory,
-        });
-        lastContextKey = contextKey;
-    }
-
-    const userMessage = history[history.length - 1];
-    if (userMessage.sender !== 'user') {
-        console.error("Last message is not from user, aborting chat.");
-        return;
-    }
-
-    const messageParts: (string | { inlineData: { data: string; mimeType: string; } })[] = [userMessage.text];
-
-    if (file) {
-        messageParts.push({
-            inlineData: {
-                data: file.base64Data,
-                mimeType: file.mimeType
-            }
-        });
-    }
     
+    if (file) {
+      const lastUserMessage = contents[contents.length - 1];
+      if (lastUserMessage.role === 'user') {
+          // FIX: Cast the `parts` array to `any[]` to allow pushing multimodal content.
+          // TypeScript infers `parts` as `({text: string})[]` initially, which caused an error.
+          (lastUserMessage.parts as any[]).push({
+              inlineData: {
+                  data: file.base64Data,
+                  mimeType: file.mimeType,
+              },
+          });
+      }
+    }
+
+
     try {
-        const stream = await chat.sendMessageStream({ message: messageParts });
+        const stream = await ai.models.generateContentStream({
+            model: "gemini-2.5-flash",
+            contents: contents,
+            config: {
+                systemInstruction: systemInstruction,
+            },
+        });
         
-        let fullText = '';
+        let fullMessage = '';
         for await (const chunk of stream) {
-            const textChunk = chunk.text;
-            fullText += textChunk;
-            onUpdate(textChunk);
+            const chunkText = chunk.text;
+            fullMessage += chunkText;
+            onUpdate(chunkText);
         }
-        onComplete(fullText);
+        onComplete(fullMessage);
 
     } catch (e) {
-        console.error("Failed to get chat response from Gemini stream:", e);
-        onComplete("Sorry, I encountered an error. Please try again in a moment.");
+        console.error("Chat stream failed:", e);
+        onComplete("Sorry, I encountered an error. Please try again.");
     }
 };
 
-export const resetChat = () => {
-    chat = null;
-    lastContextKey = null;
+export const generateChatTopic = async (messages: ChatMessage[]): Promise<string> => {
+    if (!API_KEY) throw new Error("API Key is not configured.");
+    const ai = new GoogleGenAI({ apiKey: API_KEY });
+    
+    const conversation = messages.slice(1, 4).map(m => `${m.sender}: ${m.text}`).join('\n');
+    
+    const prompt = `
+        Summarize the following conversation into a short, concise topic title (4 words maximum).
+        Conversation:
+        ${conversation}
+    `;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: prompt,
+        });
+        return response.text.replace(/["']/g, ""); // Remove quotes
+    } catch (e) {
+        console.error("Failed to generate chat topic:", e);
+        return "Chat Summary";
+    }
 };

@@ -89,6 +89,8 @@ export interface ServerTemplate {
   tagline?: string;
   isStreaming?: boolean;
   publishedAt?: any;
+  likes?: number;
+  dislikes?: number;
 }
 
 export interface ChatAction {
@@ -100,4 +102,11 @@ export interface ChatMessage {
   sender: 'user' | 'bot';
   text: string;
   actions?: ChatAction[];
+}
+
+export interface ChatSession {
+  id: string;
+  topic: string;
+  messages: ChatMessage[];
+  timestamp: number;
 }

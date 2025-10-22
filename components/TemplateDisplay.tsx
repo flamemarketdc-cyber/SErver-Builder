@@ -26,7 +26,6 @@ interface TemplateDisplayProps {
   isToolkitMode?: boolean;
   onGoHome?: () => void;
   onRegenerateTemplate: () => void;
-  onPublishToGallery: (template: ServerTemplate) => Promise<void>;
   initialSection?: Section;
 }
 
@@ -378,13 +377,11 @@ const ActionButton: React.FC<{ onClick: () => void; children: React.ReactNode; l
 
 
 export const TemplateDisplay: React.FC<TemplateDisplayProps> = (props) => {
-  const { template, iconBase64, isIconLoading, isTutorialLoading, iconError, isToolkitMode, onGoHome, onRegenerateTemplate, onPublishToGallery, initialSection } = props;
+  const { template, iconBase64, isIconLoading, isTutorialLoading, iconError, isToolkitMode, onGoHome, onRegenerateTemplate, initialSection } = props;
   const [activeSection, setActiveSection] = useState<Section>(isToolkitMode ? 'Utilities' : 'Channels');
   const [copiedServerName, setCopiedServerName] = useState<boolean>(false);
   const [copiedVanityUrl, setCopiedVanityUrl] = useState<boolean>(false);
   const [viewMode, setViewMode] = useState<'template' | 'preview'>('template');
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [isPublished, setIsPublished] = useState(false);
   
   useEffect(() => {
     if (initialSection) {
@@ -400,18 +397,6 @@ export const TemplateDisplay: React.FC<TemplateDisplayProps> = (props) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-  
-  const handlePublish = async () => {
-    setIsPublishing(true);
-    try {
-        await onPublishToGallery(template);
-        setIsPublished(true);
-    } catch (error) {
-        console.error("Publishing failed:", error);
-    } finally {
-        setIsPublishing(false);
-    }
   };
 
   const renderContent = () => {
@@ -539,28 +524,19 @@ export const TemplateDisplay: React.FC<TemplateDisplayProps> = (props) => {
                             <span className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap px-2 py-1 bg-slate-950 border border-slate-700 text-white text-xs rounded-md transition-opacity pointer-events-none opacity-0 group-hover:opacity-100 ${copiedServerName ? '!opacity-100' : ''}`}>{copiedServerName ? 'Copied!' : `Copy Name`}</span>
                         </button>
                     </div>
-                    <button onClick={() => { navigator.clipboard.writeText(template.vanityUrlSuggestion); setCopiedVanityUrl(true); setTimeout(() => setCopiedVanityUrl(false), 2000); }} className="group relative inline-flex items-center gap-2 bg-slate-800 text-slate-300 text-sm font-mono px-3 py-1.5 rounded-full border border-slate-700 hover:border-red-600 transition-all duration-200">
-                        <LinkIcon />
-                        <span>{template.vanityUrlSuggestion}</span>
-                        <span className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap px-2 py-1 bg-slate-950 border border-slate-700 text-white text-xs rounded-md transition-opacity pointer-events-none opacity-0 group-hover:opacity-100 ${copiedVanityUrl ? '!opacity-100' : ''}`}>{copiedVanityUrl ? 'Copied!' : `discord.gg/${template.vanityUrlSuggestion}`}</span>
-                    </button>
+                    <div className="flex items-center justify-center sm:justify-start gap-4">
+                      <button onClick={() => { navigator.clipboard.writeText(template.vanityUrlSuggestion); setCopiedVanityUrl(true); setTimeout(() => setCopiedVanityUrl(false), 2000); }} className="group relative inline-flex items-center gap-2 bg-slate-800 text-slate-300 text-sm font-mono px-3 py-1.5 rounded-full border border-slate-700 hover:border-red-600 transition-all duration-200">
+                          <LinkIcon />
+                          <span>{template.vanityUrlSuggestion}</span>
+                          <span className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap px-2 py-1 bg-slate-950 border border-slate-700 text-white text-xs rounded-md transition-opacity pointer-events-none opacity-0 group-hover:opacity-100 ${copiedVanityUrl ? '!opacity-100' : ''}`}>{copiedVanityUrl ? 'Copied!' : `discord.gg/${template.vanityUrlSuggestion}`}</span>
+                      </button>
+                    </div>
                     {iconError && !iconBase64 && (
                         <p className="text-red-400 text-xs text-center sm:text-left mt-2 animate-pulse">{iconError}</p>
                     )}
                 </div>
                 
                  <div className="md:ml-auto flex items-center gap-2 mt-4 md:mt-0 flex-shrink-0">
-                    {!template.id && (
-                        <ActionButton
-                            onClick={handlePublish}
-                            disabled={isPublishing || isPublished}
-                            label={isPublished ? "Published!" : isPublishing ? "Publishing..." : "Publish to Gallery"}
-                            className="bg-sky-800/70 text-sky-300 hover:bg-sky-700 hover:text-white"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
-                            <span className="hidden sm:inline">{isPublished ? "Published!" : isPublishing ? "Publishing..." : "Publish"}</span>
-                        </ActionButton>
-                    )}
                     <ActionButton
                         onClick={onRegenerateTemplate}
                         label="Regenerate template"

@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { supabase } from '../supabaseClient.ts';
+import type { Session } from '@supabase/supabase-js';
+
 
 interface NavbarProps {
+  session: Session | null;
   onGoHome: () => void;
   onShowToolkit: () => void;
-  onShowGallery: () => void;
   onNavigate: (sectionId: string) => void;
+  onShowGallery: () => void;
 }
 
 const Logo = () => (
@@ -27,9 +31,24 @@ const CloseIcon = () => (
     </svg>
 );
 
-export const Navbar: React.FC<NavbarProps> = ({ onGoHome, onShowToolkit, onShowGallery, onNavigate }) => {
+export const Navbar: React.FC<NavbarProps> = ({ session, onGoHome, onShowToolkit, onNavigate, onShowGallery }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  const user = session?.user;
+
+  const handleLogin = async () => {
+      await supabase.auth.signInWithOAuth({
+          provider: 'discord',
+      });
+  };
+
+  const handleLogout = async () => {
+      await supabase.auth.signOut();
+      setIsDropdownOpen(false);
+  };
 
   useEffect(() => {
     const handleScrollEvent = () => setIsScrolled(window.scrollY > 50);
@@ -41,6 +60,18 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome, onShowToolkit, onShowG
     }
   }, [isMobileMenuOpen]);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+            setIsDropdownOpen(false);
+        }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdownRef]);
+
   const handleMobileLinkClick = (id: string) => {
     setIsMobileMenuOpen(false);
     setTimeout(() => onNavigate(id), 100);
@@ -50,6 +81,32 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome, onShowToolkit, onShowG
     setIsMobileMenuOpen(false);
     handler();
   }
+
+  const userMenu = user ? (
+        <div className="relative" ref={dropdownRef}>
+            <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center gap-2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:ring-red-500"
+                aria-haspopup="true"
+                aria-expanded={isDropdownOpen}
+            >
+                <img src={user.user_metadata.avatar_url} alt={user.user_metadata.full_name} className="w-8 h-8 rounded-full" />
+            </button>
+            {isDropdownOpen && (
+                <div className="user-dropdown absolute top-full right-0 mt-3 w-48 bg-slate-800 border border-slate-700 rounded-lg shadow-lg py-1 z-20">
+                    <div className="px-4 py-2 border-b border-slate-700">
+                        <p className="text-sm font-semibold text-white truncate">{user.user_metadata.full_name}</p>
+                        <p className="text-xs text-slate-400 truncate">{user.email}</p>
+                    </div>
+                    <button onClick={handleLogout} className="block w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-red-600/50 hover:text-white transition-colors">Logout</button>
+                </div>
+            )}
+        </div>
+    ) : (
+        <button onClick={handleLogin} className="flex-shrink-0 bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2 rounded-lg shadow-md transition-all duration-300 ease-in-out text-sm">
+            Login with Discord
+        </button>
+    );
 
   return (
     <>
@@ -62,11 +119,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome, onShowToolkit, onShowG
             </button>
             <div className="hidden md:flex items-center gap-1">
               <button onClick={() => onNavigate('features')} className="font-semibold text-slate-300 hover:text-white transition-colors px-3 py-1.5 rounded-lg text-sm">Features</button>
-              <button onClick={onShowGallery} className="font-semibold text-slate-300 hover:text-white transition-colors px-3 py-1.5 rounded-lg text-sm">Gallery</button>
               <button onClick={onShowToolkit} className="font-semibold text-slate-300 hover:text-white transition-colors px-3 py-1.5 rounded-lg text-sm">AI Toolkit</button>
+              <button onClick={onShowGallery} className="font-semibold text-slate-300 hover:text-white transition-colors px-3 py-1.5 rounded-lg text-sm">Gallery</button>
               <button onClick={() => onNavigate('howitworks')} className="font-semibold text-slate-300 hover:text-white transition-colors px-3 py-1.5 rounded-lg text-sm">How It Works</button>
             </div>
-            <a href="https://discord.gg/flamegw" target="_blank" rel="noopener noreferrer" className="hidden md:flex flex-shrink-0 bg-gradient-to-r from-red-600 to-red-800 text-white font-bold px-3 py-2 rounded-full shadow-md hover:from-red-500 hover:to-red-700 transition-all duration-300 ease-in-out transform hover:scale-105 btn-interactive-red text-sm">Join Discord</a>
+            <div className="hidden md:flex items-center gap-4">
+              <a href="https://discord.gg/flamegw" target="_blank" rel="noopener noreferrer" className="flex-shrink-0 bg-gradient-to-r from-red-600 to-red-800 text-white font-bold px-3 py-2 rounded-full shadow-md hover:from-red-500 hover:to-red-700 transition-all duration-300 ease-in-out transform hover:scale-105 btn-interactive-red text-sm">Join Discord</a>
+              {userMenu}
+            </div>
             <div className="md:hidden z-10">
               <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-slate-300 hover:text-white p-2 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500" aria-label="Toggle navigation menu">
                 {isMobileMenuOpen ? <CloseIcon /> : <HamburgerIcon />}
@@ -76,14 +136,27 @@ export const Navbar: React.FC<NavbarProps> = ({ onGoHome, onShowToolkit, onShowG
         </div>
       </nav>
       <div className={`fixed inset-0 z-40 bg-black/80 backdrop-blur-lg transition-transform duration-300 ease-in-out md:hidden ${isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full'}`}>
-        <div className="container mx-auto px-4 pt-24 text-center">
+        <div className="container mx-auto px-4 pt-24 flex flex-col h-full">
             <ul className="flex flex-col items-center gap-6">
               <li><button onClick={() => handleMobileLinkClick('features')} className="text-2xl font-bold text-slate-200 hover:gradient-text">Features</button></li>
-              <li><button onClick={() => handleMobileClick(onShowGallery)} className="text-2xl font-bold text-slate-200 hover:gradient-text">Gallery</button></li>
               <li><button onClick={() => handleMobileClick(onShowToolkit)} className="text-2xl font-bold text-slate-200 hover:gradient-text">AI Toolkit</button></li>
+              <li><button onClick={() => handleMobileClick(onShowGallery)} className="text-2xl font-bold text-slate-200 hover:gradient-text">Gallery</button></li>
               <li><button onClick={() => handleMobileLinkClick('howitworks')} className="text-2xl font-bold text-slate-200 hover:gradient-text">How It Works</button></li>
-              <li className="pt-4"><a href="https://discord.gg/flamegw" target="_blank" rel="noopener noreferrer" className="flex-shrink-0 bg-gradient-to-r from-red-600 to-red-800 text-white font-bold px-6 py-3 rounded-full shadow-md text-lg">Join Discord</a></li>
+              <li className="pt-4"><a href="https://discord.gg/flamegw" target="_blank" rel="noopener noreferrer" className="flex-shrink-0 bg-slate-700/80 text-white font-bold px-6 py-3 rounded-full shadow-md text-lg">Join Discord</a></li>
             </ul>
+            <div className="mt-auto mb-12 text-center">
+              {user ? (
+                <div className="flex flex-col items-center gap-4">
+                    <img src={user.user_metadata.avatar_url} alt={user.user_metadata.full_name} className="w-16 h-16 rounded-full border-2 border-slate-600" />
+                    <span className="text-xl text-white">{user.user_metadata.full_name}</span>
+                    <button onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }} className="text-lg font-bold text-red-400 hover:gradient-text">Logout</button>
+                </div>
+              ) : (
+                <button onClick={() => { handleLogin(); setIsMobileMenuOpen(false); }} className="flex-shrink-0 bg-gradient-to-r from-red-600 to-red-800 text-white font-bold px-6 py-3 rounded-full shadow-md text-lg">
+                    Login with Discord
+                </button>
+              )}
+            </div>
         </div>
       </div>
     </>
