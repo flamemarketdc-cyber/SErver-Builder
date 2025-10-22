@@ -9,10 +9,7 @@ interface NavbarProps {
   onShowToolkit: () => void;
   onNavigate: (sectionId: string) => void;
   onShowGallery: () => void;
-  history: ServerTemplate[];
-  isHistoryLoading: boolean;
-  onFetchHistory: () => void;
-  onLoadFromHistory: (template: ServerTemplate) => void;
+  onShowHistory: () => void;
 }
 
 const Logo = () => (
@@ -47,9 +44,15 @@ const LogoutIcon = () => (
     </svg>
 );
 
+const HistoryIcon = () => (
+   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+     <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+   </svg>
+);
+
 
 export const Navbar: React.FC<NavbarProps> = (props) => {
-  const { session, onGoHome, onShowToolkit, onNavigate, onShowGallery, history, isHistoryLoading, onFetchHistory, onLoadFromHistory } = props;
+  const { session, onGoHome, onShowToolkit, onNavigate, onShowGallery, onShowHistory } = props;
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -70,13 +73,6 @@ export const Navbar: React.FC<NavbarProps> = (props) => {
       await supabase.auth.signOut();
       setIsDropdownOpen(false);
   };
-  
-  useEffect(() => {
-    if (isDropdownOpen && !isHistoryLoading && history.length === 0) {
-      onFetchHistory();
-    }
-  }, [isDropdownOpen, history.length, isHistoryLoading, onFetchHistory]);
-
 
   useEffect(() => {
     const handleScrollEvent = () => setIsScrolled(window.scrollY > 50);
@@ -109,11 +105,6 @@ export const Navbar: React.FC<NavbarProps> = (props) => {
     setIsMobileMenuOpen(false);
     handler();
   }
-  
-  const handleHistoryClick = (template: ServerTemplate) => {
-      onLoadFromHistory(template);
-      setIsDropdownOpen(false);
-  };
 
   const getAvatarDecorationUrl = (metadata: any): string | null => {
       if (!metadata) return null;
@@ -161,20 +152,11 @@ export const Navbar: React.FC<NavbarProps> = (props) => {
                             <p className="font-semibold text-white truncate">{user.user_metadata.full_name}</p>
                             <p className="text-sm text-zinc-400 truncate">{user.email}</p>
                         </div>
-                        <div className="py-2 max-h-64 overflow-y-auto">
-                            <h4 className="px-4 pt-1 pb-2 text-xs font-semibold text-zinc-500 uppercase">Recent Generations</h4>
-                            {isHistoryLoading ? (
-                                <div className="flex items-center justify-center p-4"><div className="w-5 h-5 border-2 border-t-red-500 border-r-red-500 border-b-transparent border-l-transparent rounded-full animate-spin"></div></div>
-                            ) : history.length > 0 ? (
-                                history.map((item, index) => (
-                                    <button key={index} onClick={() => handleHistoryClick(item)} className="w-full text-left px-4 py-2.5 flex items-center gap-3 text-sm text-zinc-300 hover:bg-zinc-800/80 hover:text-white transition-colors">
-                                        <img src={item.iconUrl || `https://via.placeholder.com/40/3f3f46/ffffff?text=${item.serverName.charAt(0)}`} alt={item.serverName} className="w-7 h-7 rounded-md flex-shrink-0 bg-zinc-700" />
-                                        <span className="truncate">{item.serverName}</span>
-                                    </button>
-                                ))
-                            ) : (
-                                <p className="px-4 py-2 text-sm text-zinc-500">No recent generations.</p>
-                            )}
+                        <div className="p-2">
+                            <button onClick={() => { onShowHistory(); setIsDropdownOpen(false); }} className="w-full text-left px-3 py-2 flex items-center gap-3 text-sm rounded-md text-zinc-300 hover:bg-zinc-800/80 hover:text-white transition-colors">
+                                <HistoryIcon />
+                                <span>My Creations</span>
+                            </button>
                         </div>
                         <div className="p-2 border-t border-zinc-700/50">
                             <button onClick={handleLogout} className="w-full text-left px-3 py-2 flex items-center gap-3 text-sm rounded-md text-zinc-300 hover:bg-red-900/50 hover:text-red-300 transition-colors">
@@ -232,6 +214,7 @@ export const Navbar: React.FC<NavbarProps> = (props) => {
                 <div className="flex flex-col items-center gap-4">
                     <img src={user.user_metadata.avatar_url} alt={user.user_metadata.full_name} className="w-16 h-16 rounded-full border-2 border-slate-600" />
                     <span className="text-xl text-white">{user.user_metadata.full_name}</span>
+                    <button onClick={() => { handleMobileClick(onShowHistory); }} className="text-xl font-bold text-slate-200 hover:gradient-text mt-4">My Creations</button>
                     <button onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }} className="text-lg font-bold text-red-400 hover:gradient-text mt-4">Logout</button>
                 </div>
               ) : (

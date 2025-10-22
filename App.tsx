@@ -17,10 +17,11 @@ import { HowItWorks } from './components/HowItWorks.tsx';
 import { ChatbotFab } from './components/ChatbotFab.tsx';
 import { Chatbot } from './components/Chatbot.tsx';
 import { GalleryPage } from './components/GalleryPage.tsx';
+import { HistoryPage } from './components/HistoryPage.tsx';
 import { supabase } from './supabaseClient.ts';
 import type { Session } from '@supabase/supabase-js';
 
-type AppView = 'home' | 'generating' | 'results' | 'toolkitPrompt' | 'toolkit' | 'serverBuilder' | 'gallery';
+type AppView = 'home' | 'generating' | 'results' | 'toolkitPrompt' | 'toolkit' | 'serverBuilder' | 'gallery' | 'history';
 
 const defaultTemplateForToolkit: ServerTemplate = {
   serverName: 'AI Toolkit',
@@ -41,6 +42,8 @@ const getViewFromHash = (hash: string): AppView => {
       return 'serverBuilder';
     case '#/gallery':
       return 'gallery';
+    case '#/history':
+      return 'history';
     case '#/':
     case '#':
     case '':
@@ -226,7 +229,10 @@ const App: React.FC = () => {
     if (view === 'gallery') {
         loadGallery();
     }
-  }, [view]);
+    if (view === 'history' && session?.user) {
+        fetchHistory();
+    }
+  }, [view, session]);
   
   const loadGallery = () => {
     const pixelCraftTemplate = staticGalleryTemplates.find(t => t.serverName === "PixelCraft");
@@ -500,13 +506,12 @@ const App: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('generated_templates')
-        .select('template_data, prompt')
+        .select('id, template_data, prompt, created_at')
         .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
-      const templates = data.map(item => ({ ...item.template_data, tagline: item.prompt }));
+      const templates = data.map(item => ({ ...item.template_data, id: item.id, tagline: item.prompt }));
       setHistory(templates);
     } catch (error) {
       console.error('Error fetching history:', error);
@@ -515,9 +520,8 @@ const App: React.FC = () => {
     }
   };
 
-  const handleLoadFromHistory = (template: ServerTemplate) => {
-    handleSelectTemplate(template);
-  };
+  const handleShowHistory = () => handleNavigate('/history');
+
 
   // --- CHAT HANDLERS ---
   const handleChatFabClick = () => {
@@ -531,6 +535,7 @@ const App: React.FC = () => {
     let initialText = "Hello! I'm the Flame Assistant. How can I help you with the Server Builder today?";
     switch (view) {
         case 'gallery': initialText = "Welcome to the Gallery! Ask me about these templates."; break;
+        case 'history': initialText = "Welcome to your creations page! Ask me about any of your past templates."; break;
         case 'toolkit': case 'toolkitPrompt': initialText = `Welcome to the AI Toolkit! What would you like to create for your server about "${prompt || 'your topic'}"?`; break;
         case 'results': initialText = `This is the template for "${serverTemplate?.serverName || 'your server'}". How can I help you with it?`; break;
     }
@@ -641,6 +646,7 @@ const App: React.FC = () => {
             case 'NAV_TOOLKIT': handleShowToolkit(); break;
             case 'NAV_SERVERBUILDER': handleNavigate('/serverbuilder'); break;
             case 'NAV_GALLERY': handleNavigate('/gallery'); break;
+            case 'NAV_HISTORY': handleShowHistory(); break;
             case 'SCROLL_EXAMPLES': handleScrollNavigate('examples'); break;
             case 'SCROLL_FEATURES': handleScrollNavigate('features'); break;
             case 'SCROLL_HOWITWORKS': handleScrollNavigate('howitworks'); break;
@@ -662,13 +668,17 @@ const App: React.FC = () => {
       
       case 'gallery':
         return <GalleryPage templates={galleryTemplates} onSelectTemplate={handleSelectTemplate} />;
+
+      case 'history':
+        return <HistoryPage history={history} isLoading={isHistoryLoading} onSelectTemplate={handleSelectTemplate} />;
         
       case 'results':
       case 'toolkit':
         const isToolkit = view === 'toolkit';
         const template = isToolkit ? defaultTemplateForToolkit : serverTemplate;
-        // FIX: The `view !== 'generating'` check is redundant and causes a type error because
-        // the view is already narrowed to 'results' or 'toolkit' in this switch case.
+        // Fix: Removed redundant and incorrect `view !== 'generating'` check.
+        // Inside this switch case, `view` can only be 'results' or 'toolkit', so the check was always true
+        // and caused a TypeScript error. The logic now correctly checks only for the template's existence.
         if (!template) {
             return <LoadingSpinner message={'Loading Server Blueprint...'} />;
         }
@@ -731,16 +741,13 @@ const App: React.FC = () => {
         onGoHome={handleGoHome} 
         onShowToolkit={handleShowToolkit} 
         onNavigate={handleScrollNavigate} 
-        onShowGallery={() => handleNavigate('/gallery')} 
-        history={history}
-        isHistoryLoading={isHistoryLoading}
-        onFetchHistory={fetchHistory}
-        onLoadFromHistory={handleLoadFromHistory}
+        onShowGallery={() => handleNavigate('/gallery')}
+        onShowHistory={handleShowHistory}
       />
       <main className="container mx-auto px-4 py-8 md:py-16">
         <Header 
-          isToolkitMode={view === 'toolkit'}
-          onGoHome={view === 'results' || view === 'toolkit' || view === 'gallery' || view === 'toolkitPrompt' ? handleGoHome : undefined} 
+          isToolkitMode={view === 'toolkit' || view === 'history'}
+          onGoHome={view === 'results' || view === 'toolkit' || view === 'gallery' || view === 'toolkitPrompt' || view === 'history' ? handleGoHome : undefined} 
         />
         <div className="mt-12">
           {renderContent()}
