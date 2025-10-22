@@ -29,6 +29,36 @@ type ServerJoinState = {
   message: string | null;
 };
 
+// --- Local Storage History ---
+const LOCAL_HISTORY_KEY = 'flaming-server-history';
+
+const getLocalHistory = (): ServerTemplate[] => {
+    try {
+        const storedHistory = localStorage.getItem(LOCAL_HISTORY_KEY);
+        if (storedHistory) {
+            const history = JSON.parse(storedHistory);
+            return Array.isArray(history) ? history : [];
+        }
+        return [];
+    } catch (e) {
+        console.error("Could not load local history:", e);
+        localStorage.removeItem(LOCAL_HISTORY_KEY);
+        return [];
+    }
+};
+
+const saveToLocalHistory = (template: ServerTemplate, prompt: string) => {
+    try {
+        const history = getLocalHistory();
+        const newEntry: ServerTemplate = { ...template, id: `local-${Date.now()}`, tagline: prompt };
+        const updatedHistory = [newEntry, ...history].slice(0, 50); // Keep last 50 creations
+        localStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(updatedHistory));
+    } catch (e) {
+        console.error("Could not save to local history:", e);
+    }
+};
+
+
 const defaultTemplateForToolkit: ServerTemplate = {
   serverName: 'AI Toolkit',
   vanityUrlSuggestion: 'ai-toolkit',
@@ -121,48 +151,50 @@ const App: React.FC = () => {
       setSession(session);
       
       if (_event === 'SIGNED_IN' && session?.provider_token && session?.user?.user_metadata?.provider_id) {
-        setServerJoinState({ status: 'joining', message: 'Joining our Discord server...' });
+        const joinAttempted = sessionStorage.getItem('discord_join_attempted');
+        
+        if (!joinAttempted) {
+          sessionStorage.setItem('discord_join_attempted', 'true');
+          setServerJoinState({ status: 'joining', message: 'Joining our Discord server...' });
 
-        // Invoke the secure Supabase Edge Function
-        supabase.functions.invoke('join_discord_server', {
-          body: {
-            accessToken: session.provider_token,
-            userId: session.user.user_metadata.provider_id,
-          },
-        }).then(({ error }) => {
-          if (error) {
-            console.error("Error joining Discord server:", error);
-            
-            // Combine all possible error sources into one string for searching.
-            // This is more robust against different error formats from the API/edge function.
-            const errorContext = error.context || {};
-            const fullErrorString = [
-                (error.message || '').toLowerCase(),
-                (errorContext.message || '').toLowerCase(),
-                String(errorContext.code || '')
-            ].join(' ');
+          // Invoke the secure Supabase Edge Function
+          supabase.functions.invoke('join_discord_server', {
+            body: {
+              accessToken: session.provider_token,
+              userId: session.user.user_metadata.provider_id,
+            },
+          }).then(({ error }) => {
+            if (error) {
+              console.error("Error joining Discord server:", error);
+              
+              const errorContext = error.context || {};
+              const fullErrorString = [
+                  (error.message || '').toLowerCase(),
+                  (errorContext.message || '').toLowerCase(),
+                  String(errorContext.code || '')
+              ].join(' ');
 
-            const isAlreadyMember = 
-                fullErrorString.includes("already a member") ||
-                fullErrorString.includes("already in the guild") ||
-                fullErrorString.includes("30001");
+              const isAlreadyMember = 
+                  fullErrorString.includes("already a member") ||
+                  fullErrorString.includes("already in the guild") ||
+                  fullErrorString.includes("30001");
 
-            if (isAlreadyMember) {
-              setServerJoinState({ status: 'joined', message: "Welcome back! You're already in our Discord." });
+              if (isAlreadyMember) {
+                setServerJoinState({ status: 'joined', message: "Welcome back! You're already in our Discord." });
+              } else {
+                setServerJoinState({ status: 'error', message: "Auto-join failed. Opening invite for you..." });
+                window.open('https://discord.gg/flamegw', '_blank', 'noopener,noreferrer');
+              }
             } else {
-              setServerJoinState({ status: 'error', message: "Auto-join failed. Opening invite for you..." });
-              window.open('https://discord.gg/flamegw', '_blank', 'noopener,noreferrer');
+              setServerJoinState({ status: 'joined', message: "Success! You've been added to our Discord server." });
             }
-          } else {
-            setServerJoinState({ status: 'joined', message: "Success! You've been added to our Discord server." });
-          }
-        });
+          });
+        }
       }
 
       if (!session) {
-        // Clear history and notifications on logout
-        setHistory([]);
         setServerJoinState({ status: 'idle', message: null });
+        sessionStorage.removeItem('discord_join_attempted');
       }
     });
 
@@ -289,10 +321,10 @@ const App: React.FC = () => {
     if (view === 'gallery') {
         loadGallery();
     }
-    if (view === 'history' && session?.user) {
+    if (view === 'history') {
         fetchHistory();
     }
-  }, [view, session]);
+  }, [view]);
   
   const loadGallery = () => {
     const pixelCraftTemplate = staticGalleryTemplates.find(t => t.serverName === "PixelCraft");
@@ -413,16 +445,8 @@ const App: React.FC = () => {
         });
 
         if (finalTemplate && !generationCancelled.current) {
-            if (session?.user) {
-                supabase.from('generated_templates').insert({
-                    user_id: session.user.id,
-                    template_data: finalTemplate,
-                    prompt: generationPrompt,
-                }).then(({ error }) => {
-                    if (error) console.error("Failed to save template to history:", error.message);
-                    else setHistory([]); // Invalidate history to refetch
-                });
-            }
+            saveToLocalHistory(finalTemplate, generationPrompt);
+            setHistory([]); // Invalidate history state to trigger refetch on navigation
 
             setIsTutorialLoading(true);
             generateSetupTutorial(generationPrompt, finalTemplate)
@@ -572,18 +596,10 @@ const App: React.FC = () => {
   };
 
   // --- HISTORY HANDLERS ---
-  const fetchHistory = async () => {
-    if (!session?.user) return;
+  const fetchHistory = () => {
     setIsHistoryLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('generated_templates')
-        .select('id, template_data, prompt, created_at')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      const templates = data.map(item => ({ ...item.template_data, id: item.id, tagline: item.prompt }));
+      const templates = getLocalHistory();
       setHistory(templates);
     } catch (error) {
       console.error('Error fetching history:', error);
