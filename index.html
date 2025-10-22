@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flaming Server Builder</title>
+    <link rel="icon" type="image/png" href="https://i.postimg.cc/L6KKKmrF/Vibrant-Flame-on-Black-Background-removebg-preview.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+      html {
+        font-size: 87.5%; /* 14px base */
+      }
+      @media (max-width: 768px) {
+        html {
+          font-size: 81.25%; /* 13px base */
+        }
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #000000;
+        background-image: 
+          radial-gradient(ellipse 80% 50% at top center, rgba(127, 29, 29, 0.25) 0%, rgba(127, 29, 29, 0) 70%),
+          radial-gradient(ellipse 70% 50% at bottom left, rgba(127, 29, 29, 0.2) 0%, rgba(127, 29, 29, 0) 80%);
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+      }
+      .font-title {
+        font-family: 'Inter', sans-serif;
+      }
+      .gradient-text {
+        background-image: linear-gradient(to right, #ef4444, #b91c1c);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .silver-gradient-text {
+        background-image: linear-gradient(to right, #f8fafc, #cbd5e1);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .fire-shadow {
+        text-shadow: 0 2px 20px rgba(255, 255, 255, 0.1);
+      }
+      
+      .main-title-interactive {
+          transition: transform 0.3s ease-in-out;
+      }
+      .main-title-interactive:hover {
+          transform: none;
+      }
+      .red-glow, .white-glow {
+        display: inline-block;
+        transition: filter 0.3s ease-in-out;
+        filter: drop-shadow(0 0 0px rgba(255, 255, 255, 0)); /* No default glow */
+      }
+      .main-title-interactive:hover .red-glow {
+        filter: drop-shadow(0 0 2px rgba(239, 68, 68, 0.4)); /* Very gentle glow on hover */
+      }
+      .main-title-interactive:hover .white-glow {
+        filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.4)); /* Very gentle glow on hover */
+      }
+      @keyframes pulse-glow-red {
+        0%, 100% {
+          box-shadow: 0 0 5px rgba(239, 68, 68, 0.4), 0 0 10px rgba(239, 68, 68, 0.2);
+        }
+        50% {
+          box-shadow: 0 0 15px rgba(239, 68, 68, 0.6), 0 0 25px rgba(239, 68, 68, 0.4);
+        }
+      }
+      @keyframes pulse-glow-slate {
+        0%, 100% {
+          box-shadow: 0 0 5px rgba(100, 116, 139, 0.4), 0 0 10px rgba(100, 116, 139, 0.2);
+        }
+        50% {
+          box-shadow: 0 0 15px rgba(100, 116, 139, 0.6), 0 0 25px rgba(100, 116, 139, 0.4);
+        }
+      }
+      @keyframes draw-line {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      .underline-path-animated {
+        stroke-dasharray: 240;
+        stroke-dashoffset: 240;
+        animation: draw-line 1s ease-out forwards;
+        animation-delay: 0.3s;
+      }
+      .btn-interactive-red {
+        transition: all 0.3s ease-in-out;
+        animation: pulse-glow-red 3s infinite ease-in-out;
+      }
+      .btn-interactive-red:hover:not(:disabled) {
+        transform: scale(1.05);
+        filter: brightness(1.1);
+      }
+      /* Prevent hover zoom on active nav button */
+      nav .btn-interactive-red:hover:not(:disabled) {
+        transform: scale(1);
+        filter: brightness(1);
+      }
+      .btn-interactive-slate {
+        transition: all 0.3s ease-in-out;
+        animation: pulse-glow-slate 3s infinite ease-in-out;
+      }
+      .btn-interactive-slate:hover:not(:disabled) {
+        transform: scale(1.05);
+        filter: brightness(1.1);
+      }
+      .role-card-glow {
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+      }
+      .role-card-glow:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 0 12px -2px var(--role-glow-color, rgba(255, 255, 255, 0.1));
+      }
+      .card-shine {
+        position: relative;
+        overflow: hidden;
+      }
+      .card-shine::after {
+        content: '';
+        position: absolute;
+        top: -10%;
+        left: -150%;
+        width: 75%;
+        height: 120%;
+        transform: skewX(-25deg);
+        background-image: linear-gradient(
+          to right,
+          transparent,
+          rgba(255, 255, 255, 0.08),
+          transparent
+        );
+        transition: left 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+      }
+      .card-shine:hover::after {
+        left: 150%;
+      }
+      .description-content > *:first-child {
+        margin-top: 0;
+      }
+      /* Scroll Animations */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(25px) scale(0.97);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+      @keyframes unfoldAndFadeIn {
+        from {
+          opacity: 0;
+          transform: perspective(800px) rotateX(-20deg) translateY(40px);
+          transform-origin: bottom center;
+        }
+        to {
+          opacity: 1;
+          transform: perspective(800px) rotateX(0) translateY(0);
+          transform-origin: bottom center;
+        }
+      }
+      @keyframes fadeInSimple {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-fade-in {
+        animation: fadeInSimple 0.5s ease-out forwards;
+      }
+      .scroll-animate {
+        opacity: 0;
+      }
+      .scroll-animate.visible {
+        animation-name: fadeInUp;
+        animation-duration: 0.8s;
+        animation-fill-mode: forwards;
+        animation-timing-function: cubic-bezier(0.165, 0.84, 0.44, 1);
+      }
+      .unfold-animate.visible {
+        animation-name: unfoldAndFadeIn;
+        animation-duration: 0.9s;
+        animation-fill-mode: forwards;
+        animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      /* Chatbot styles */
+      .chatbot-window {
+        animation: slide-up-fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      @keyframes slide-up-fade-in {
+        from { opacity: 0; transform: translateY(30px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .chatbot-window .flex-grow {
+        scrollbar-width: thin;
+        scrollbar-color: #475569 #1e293b;
+      }
+      .chatbot-window .flex-grow::-webkit-scrollbar {
+        width: 8px;
+      }
+      .chatbot-window .flex-grow::-webkit-scrollbar-track {
+        background: #1e293b;
+        border-radius: 10px;
+      }
+      .chatbot-window .flex-grow::-webkit-scrollbar-thumb {
+        background-color: #475569;
+        border-radius: 10px;
+        border: 2px solid #1e293b;
+      }
+      .chatbot-window textarea {
+        scrollbar-width: thin;
+        scrollbar-color: #475569 #334155;
+      }
+      .chatbot-window textarea::-webkit-scrollbar {
+        width: 6px;
+      }
+      .chatbot-window textarea::-webkit-scrollbar-track {
+        background: #334155;
+        border-radius: 10px;
+      }
+      .chatbot-window textarea::-webkit-scrollbar-thumb {
+        background-color: #475569;
+        border-radius: 10px;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@18.2.0",
+    "react-dom/": "https://esm.sh/react-dom@18.2.0/",
+    "react/": "https://esm.sh/react@18.2.0/",
+    "@google/genai": "https://esm.sh/@google/genai@0.14.0",
+    "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
+    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.4.0/"
+  }
+}
+</script>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-VDPVB1QYKG"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-VDPVB1QYKG');
+</script>
+</head>
+  <body class="bg-black">
+    <canvas id="starfield" class="fixed top-0 left-0 w-full h-full -z-10"></canvas>
+    <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
+  </body>
+</html>

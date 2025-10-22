@@ -1,0 +1,7 @@
+{
+  "name": "Flaming Server Builder",
+  "description": "Describe your dream Discord server, and watch as AI builds it for you in seconds. Get everything from channels and roles to a complete setup guide.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
