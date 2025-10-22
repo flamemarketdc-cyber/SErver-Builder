@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { ServerTemplate, TutorialStep, Section, ChatMessage, ChatAction, ChatSession } from './types.ts';
 import { generateServerTemplateStream, generateIcon, generateSetupTutorial, generateWelcomeMessage, generateServerRules, generateFirstAnnouncement, generateEmbedMessage, generateBotRecommendations, startChatStream, generateChatTopic } from './services/geminiService.ts';
@@ -149,7 +150,8 @@ const App: React.FC = () => {
             if (isAlreadyMember) {
               setServerJoinState({ status: 'joined', message: "Welcome back! You're already in our Discord." });
             } else {
-              setServerJoinState({ status: 'error', message: "Couldn't add you to Discord. Please join manually." });
+              setServerJoinState({ status: 'error', message: "Auto-join failed. Opening invite for you..." });
+              window.open('https://discord.gg/flamegw', '_blank', 'noopener,noreferrer');
             }
           } else {
             setServerJoinState({ status: 'joined', message: "Success! You've been added to our Discord server." });
@@ -824,13 +826,15 @@ const App: React.FC = () => {
                     {serverJoinState.status === 'error' && <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                 </div>
                 <p className="font-semibold text-white flex-grow">{serverJoinState.message}</p>
-                <button 
-                    onClick={() => setServerJoinState({ status: 'idle', message: null })}
-                    className="ml-auto text-slate-400 hover:text-white flex-shrink-0"
-                    aria-label="Close notification"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+                 <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                    <button 
+                        onClick={() => setServerJoinState({ status: 'idle', message: null })}
+                        className="text-slate-400 hover:text-white"
+                        aria-label="Close notification"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
             </div>
         </div>
       )}
