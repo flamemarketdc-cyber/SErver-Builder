@@ -23,6 +23,11 @@ import type { Session } from '@supabase/supabase-js';
 
 type AppView = 'home' | 'generating' | 'results' | 'toolkitPrompt' | 'toolkit' | 'serverBuilder' | 'gallery' | 'history';
 
+type ServerJoinState = {
+  status: 'idle' | 'joining' | 'joined' | 'error';
+  message: string | null;
+};
+
 const defaultTemplateForToolkit: ServerTemplate = {
   serverName: 'AI Toolkit',
   vanityUrlSuggestion: 'ai-toolkit',
@@ -81,6 +86,9 @@ const App: React.FC = () => {
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [activeChatSessionId, setActiveChatSessionId] = useState<string | null>(null);
   const [isChatLoading, setIsChatLoading] = useState(false);
+  
+  // Server join state
+  const [serverJoinState, setServerJoinState] = useState<ServerJoinState>({ status: 'idle', message: null });
 
   const [scrollToSection, setScrollToSection] = useState<string | null>(null);
   const [initialSectionForResults, setInitialSectionForResults] = useState<Section | undefined>(undefined);
@@ -90,6 +98,16 @@ const App: React.FC = () => {
   const isGenerating = useRef(false);
   const serverTemplateRef = useRef(serverTemplate);
   
+  // Auto-dismiss timer for server join notification
+  useEffect(() => {
+    if (serverJoinState.status === 'joined' || serverJoinState.status === 'error') {
+        const timer = setTimeout(() => {
+            setServerJoinState({ status: 'idle', message: null });
+        }, 6000);
+        return () => clearTimeout(timer);
+    }
+  }, [serverJoinState.status]);
+
   // Supabase Auth listener
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -101,19 +119,33 @@ const App: React.FC = () => {
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       
-      if (_event === 'SIGNED_IN' && session) {
-        // In a real application, this is where you would trigger a secure,
-        // server-side function to add the user to your Discord server.
-        // This function would use the access token (`session.provider_token`)
-        // to make a call to the Discord API. This prevents exposing sensitive
-        // tokens on the client-side.
-        // Example: await supabase.functions.invoke('add-to-discord-server');
-        console.log('User signed in. In a real app, would now add to Discord server via backend function.');
+      if (_event === 'SIGNED_IN' && session?.provider_token && session?.user?.user_metadata?.provider_id) {
+        setServerJoinState({ status: 'joining', message: 'Joining our Discord server...' });
+
+        // Invoke the secure Supabase Edge Function
+        supabase.functions.invoke('join_discord_server', {
+          body: {
+            accessToken: session.provider_token,
+            userId: session.user.user_metadata.provider_id,
+          },
+        }).then(({ error }) => {
+          if (error) {
+            console.error("Error joining Discord server:", error);
+            if (error.message.includes("already a member")) {
+              setServerJoinState({ status: 'joined', message: "Welcome back! You're already in our Discord." });
+            } else {
+              setServerJoinState({ status: 'error', message: "Couldn't add you to Discord. Please join manually." });
+            }
+          } else {
+            setServerJoinState({ status: 'joined', message: "Success! You've been added to our Discord server." });
+          }
+        });
       }
 
       if (!session) {
-        // Clear history on logout
+        // Clear history and notifications on logout
         setHistory([]);
+        setServerJoinState({ status: 'idle', message: null });
       }
     });
 
@@ -764,6 +796,29 @@ const App: React.FC = () => {
         onShowGallery={() => handleNavigate('/gallery')}
         onShowHistory={handleShowHistory}
       />
+      {serverJoinState.status !== 'idle' && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] w-full max-w-sm sm:max-w-md animate-fade-in px-4">
+            <div className={`flex items-center gap-4 p-4 rounded-xl shadow-2xl border ${
+                serverJoinState.status === 'joining' ? 'bg-blue-950/90 border-blue-800' :
+                serverJoinState.status === 'joined' ? 'bg-green-950/90 border-green-800' :
+                'bg-red-950/90 border-red-800'
+            } backdrop-blur-lg`}>
+                <div className="flex-shrink-0">
+                    {serverJoinState.status === 'joining' && <div className="w-6 h-6 border-2 border-t-white/80 border-r-white/80 border-b-transparent border-l-transparent rounded-full animate-spin"></div>}
+                    {serverJoinState.status === 'joined' && <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                    {serverJoinState.status === 'error' && <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                </div>
+                <p className="font-semibold text-white flex-grow">{serverJoinState.message}</p>
+                <button 
+                    onClick={() => setServerJoinState({ status: 'idle', message: null })}
+                    className="ml-auto text-slate-400 hover:text-white flex-shrink-0"
+                    aria-label="Close notification"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+        </div>
+      )}
       <main className="container mx-auto px-4 py-8 md:py-16">
         <Header 
           view={view}
