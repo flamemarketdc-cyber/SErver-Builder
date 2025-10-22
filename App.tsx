@@ -182,8 +182,7 @@ const App: React.FC = () => {
               if (isAlreadyMember) {
                 setServerJoinState({ status: 'joined', message: "Welcome back! You're already in our Discord." });
               } else {
-                setServerJoinState({ status: 'error', message: "Auto-join failed. Opening invite for you..." });
-                window.open('https://discord.gg/flamegw', '_blank', 'noopener,noreferrer');
+                setServerJoinState({ status: 'error', message: "Auto-join failed. Please join manually." });
               }
             } else {
               setServerJoinState({ status: 'joined', message: "Success! You've been added to our Discord server." });
@@ -843,6 +842,17 @@ const App: React.FC = () => {
                 </div>
                 <p className="font-semibold text-white flex-grow">{serverJoinState.message}</p>
                  <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                    {serverJoinState.status === 'error' && (
+                        <a 
+                          href="https://discord.gg/flamegw" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm font-semibold bg-red-500/20 text-red-300 px-3 py-1.5 rounded-lg hover:bg-red-500/40 transition-colors"
+                          onClick={() => setServerJoinState({ status: 'idle', message: null })}
+                        >
+                          Join Server
+                        </a>
+                    )}
                     <button 
                         onClick={() => setServerJoinState({ status: 'idle', message: null })}
                         className="text-slate-400 hover:text-white"

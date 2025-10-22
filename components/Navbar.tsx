@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient.ts';
 import type { Session } from '@supabase/supabase-js';
@@ -107,19 +108,23 @@ export const Navbar: React.FC<NavbarProps> = (props) => {
   }
 
   const getAvatarDecorationUrl = (metadata: any): string | null => {
-      if (!metadata) return null;
-      const userId = metadata.provider_id;
-      if (!userId) return null;
+    if (!metadata) return null;
+    const userId = metadata.provider_id;
+    if (!userId) return null;
 
-      if (metadata.avatar_decoration_data && metadata.avatar_decoration_data.asset) {
-          return `https://cdn.discordapp.com/avatar-decorations/${userId}/${metadata.avatar_decoration_data.asset}.png?size=160`;
-      }
-      
-      if (typeof metadata.avatar_decoration === 'string' && metadata.avatar_decoration) {
-          return `https://cdn.discordapp.com/avatar-decorations/${userId}/${metadata.avatar_decoration}.png?size=160`;
-      }
+    // Check for new object format (snake_case and camelCase)
+    const decorationData = metadata.avatar_decoration_data || metadata.avatarDecorationData;
+    if (decorationData && decorationData.asset) {
+        return `https://cdn.discordapp.com/avatar-decorations/${userId}/${decorationData.asset}.png?size=160`;
+    }
+    
+    // Check for old string format (snake_case and camelCase)
+    const decorationHash = metadata.avatar_decoration || metadata.avatarDecoration;
+    if (typeof decorationHash === 'string' && decorationHash) {
+        return `https://cdn.discordapp.com/avatar-decorations/${userId}/${decorationHash}.png?size=160`;
+    }
 
-      return null;
+    return null;
   };
 
   const userMenu = user ? (
