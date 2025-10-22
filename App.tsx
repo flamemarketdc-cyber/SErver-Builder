@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { ServerTemplate, TutorialStep, Section, ChatMessage, ChatAction, ChatSession } from './types.ts';
 import { generateServerTemplateStream, generateIcon, generateSetupTutorial, generateWelcomeMessage, generateServerRules, generateFirstAnnouncement, generateEmbedMessage, generateBotRecommendations, startChatStream, generateChatTopic } from './services/geminiService.ts';
@@ -617,7 +618,9 @@ const App: React.FC = () => {
       case 'toolkit':
         const isToolkit = view === 'toolkit';
         const template = isToolkit ? defaultTemplateForToolkit : serverTemplate;
-        if (!template && view !== 'generating') {
+        // FIX: The `view !== 'generating'` check is redundant and causes a type error because
+        // the view is already narrowed to 'results' or 'toolkit' in this switch case.
+        if (!template) {
             return <LoadingSpinner message={'Loading Server Blueprint...'} />;
         }
         return (
