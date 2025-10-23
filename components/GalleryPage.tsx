@@ -73,11 +73,24 @@ const GalleryListItem: React.FC<GalleryListItemProps> = ({ template, onSelect, v
     };
     
     const handleVoteClick = (voteType: 'like' | 'dislike') => {
-        if (!template.id || voted) return; // Prevent voting if already voted
+        if (!template.id) return;
 
-        onVote(template.id, voteType, null); // Old vote is always null
-        setVoted(voteType);
-        localStorage.setItem(`vote_${template.id}`, voteType);
+        const oldVote = voted;
+        // If the user clicks the same button again, un-vote. Otherwise, set the new vote.
+        const newVote = oldVote === voteType ? null : voteType;
+
+        // Propagate the vote change to the parent
+        onVote(template.id, newVote, oldVote);
+
+        // Update local state for immediate UI feedback
+        setVoted(newVote);
+
+        // Persist the vote in localStorage
+        if (newVote) {
+            localStorage.setItem(`vote_${template.id}`, newVote);
+        } else {
+            localStorage.removeItem(`vote_${template.id}`);
+        }
     };
 
     return (
@@ -106,10 +119,9 @@ const GalleryListItem: React.FC<GalleryListItemProps> = ({ template, onSelect, v
                  <div className="flex items-center gap-3 bg-slate-800/50 border border-slate-700 rounded-full px-3 py-1.5">
                     <button 
                         onClick={() => handleVoteClick('like')}
-                        className={`flex items-center gap-1.5 text-sm font-semibold transition-colors disabled:opacity-60 ${voted === 'like' ? 'text-green-400' : 'text-slate-400'} ${voted ? 'cursor-not-allowed' : 'hover:text-white'}`}
+                        className={`flex items-center gap-1.5 text-sm font-semibold transition-colors ${voted === 'like' ? 'text-green-400' : 'text-slate-400 hover:text-green-400'}`}
                         aria-label="Like template"
                         aria-pressed={voted === 'like'}
-                        disabled={voted !== null}
                     >
                         <ThumbsUpIcon />
                         <span>{votes.likes ?? 0}</span>
@@ -117,10 +129,9 @@ const GalleryListItem: React.FC<GalleryListItemProps> = ({ template, onSelect, v
                     <div className="w-px h-4 bg-slate-600"></div>
                      <button 
                         onClick={() => handleVoteClick('dislike')}
-                        className={`flex items-center gap-1.5 text-sm font-semibold transition-colors disabled:opacity-60 ${voted === 'dislike' ? 'text-red-400' : 'text-slate-400'} ${voted ? 'cursor-not-allowed' : 'hover:text-white'}`}
+                        className={`flex items-center gap-1.5 text-sm font-semibold transition-colors ${voted === 'dislike' ? 'text-red-400' : 'text-slate-400 hover:text-red-400'}`}
                         aria-label="Dislike template"
                         aria-pressed={voted === 'dislike'}
-                        disabled={voted !== null}
                     >
                         <ThumbsDownIcon />
                         <span>{votes.dislikes ?? 0}</span>
